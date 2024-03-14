@@ -10,8 +10,18 @@ public class BalancerTest {
     }
 
     @Test
+    public void v1RandomSwap() {
+        Balancer.balance(Balancer.BalanceMethod.V1, Balancer.RandomWeightMethod.RANDOM, Balancer.ExtraBalanceFeature.SWAP);
+    }
+
+    @Test
     public void v1NormalDistribution() {
         Balancer.balance(Balancer.BalanceMethod.V1, Balancer.RandomWeightMethod.NORMAL_DISTRIBUTION);
+    }
+
+    @Test
+    public void v1NormalDistributionSwap() {
+        Balancer.balance(Balancer.BalanceMethod.V1, Balancer.RandomWeightMethod.NORMAL_DISTRIBUTION, Balancer.ExtraBalanceFeature.SWAP);
     }
 
     @Test
@@ -20,8 +30,18 @@ public class BalancerTest {
     }
 
     @Test
+    public void v2RandomSwap() {
+        Balancer.balance(Balancer.BalanceMethod.V2, Balancer.RandomWeightMethod.RANDOM, Balancer.ExtraBalanceFeature.SWAP);
+    }
+
+    @Test
     public void v2NormalDistribution() {
         Balancer.balance(Balancer.BalanceMethod.V2, Balancer.RandomWeightMethod.NORMAL_DISTRIBUTION);
+    }
+
+    @Test
+    public void v2NormalDistributionSwap() {
+        Balancer.balance(Balancer.BalanceMethod.V2, Balancer.RandomWeightMethod.NORMAL_DISTRIBUTION, Balancer.ExtraBalanceFeature.SWAP);
     }
 
 }
