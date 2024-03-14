@@ -1,4 +1,4 @@
-package main.java;
+package com.ebicep.warlordsbalancer;
 
 import java.text.DecimalFormat;
 import java.util.*;
@@ -17,20 +17,16 @@ public class Balancer {
             player -> player.spec.specType == SpecType.DAMAGE,
             player -> player.spec.specType == SpecType.HEALER
     );
-    private static final BalanceMethod BALANCER_VERSION = BalanceMethod.V2;
-    private static final RandomWeightMethod RANDOM_WEIGHT_METHOD = RandomWeightMethod.NORMAL_DISTRIBUTION;
 
-
-    public static void main(String[] args) {
-
+    public static void balance(BalanceMethod balanceMethod, RandomWeightMethod randomWeightMethod) {
         double maxWeightDiff = 0;
         Map<Team, TeamBalanceInfo> mostUnbalancedTeam = new HashMap<>();
         for (int i = 0; i < 1_000_000; i++) {
             Set<Player> players = new HashSet<>();
             for (int j = 0; j < 22; j++) {
-                players.add(new Player(Specialization.getRandomSpec(), ThreadLocalRandom.current().nextDouble(MIN_WEIGHT, MAX_WEIGHT)));
+                players.add(new Player(Specialization.getRandomSpec(), randomWeightMethod.generateRandomWeight()));
             }
-            Map<Team, TeamBalanceInfo> teams = getBalancedTeams(players, BALANCER_VERSION);
+            Map<Team, TeamBalanceInfo> teams = getBalancedTeams(players, balanceMethod);
             double weightDiff = teams.get(Team.RED).totalWeight - teams.get(Team.BLUE).totalWeight;
             if (weightDiff > maxWeightDiff) {
                 maxWeightDiff = weightDiff;
@@ -124,10 +120,18 @@ public class Balancer {
         NORMAL_DISTRIBUTION {
             @Override
             public double generateRandomWeight() {
-                return ThreadLocalRandom.current().nextGaussian() * (MAX_WEIGHT - MIN_WEIGHT) / 2 + (MAX_WEIGHT + MIN_WEIGHT) / 2;
+                return clamp(ThreadLocalRandom.current().nextGaussian() * STANDARD_DEVIATION + MEAN);
             }
         },
         ;
+
+        private static final double MEAN = (MAX_WEIGHT + MIN_WEIGHT) / 2;
+        private static final double STANDARD_DEVIATION = 1.2;
+
+        private static double clamp(double value) {
+            return Math.max(MIN_WEIGHT, Math.min(MAX_WEIGHT, value));
+        }
+
         public abstract double generateRandomWeight();
     }
 
