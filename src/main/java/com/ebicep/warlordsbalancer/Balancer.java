@@ -23,7 +23,7 @@ public class Balancer {
             RandomWeightMethod randomWeightMethod,
             ExtraBalanceFeature... extraBalanceFeatures
     ) {
-        balance(new Printer(s -> {}, new Color() {}), 1_000_000, 22, balanceMethod, randomWeightMethod, EnumSet.copyOf(List.of(extraBalanceFeatures)));
+        balance(new Printer(System.out::println, new Color() {}), 1, 22, balanceMethod, randomWeightMethod, EnumSet.copyOf(List.of(extraBalanceFeatures)));
     }
 
     public static void balance(
@@ -93,7 +93,7 @@ public class Balancer {
                        players.remove(player);
                        Team team = balanceMethod.getTeam(amountOfPlayers, teams);
                        TeamBalanceInfo teamBalanceInfo = teams.get(team);
-                       teamBalanceInfo.players.add(player);
+                       teamBalanceInfo.players.add(new IndexedPlayer(player, amountOfPlayers - players.size()));
                        teamBalanceInfo.totalWeight += player.weight;
                        teamBalanceInfo.specTypeCount.merge(player.spec.specType, 1, Integer::sum);
                    });
@@ -115,8 +115,8 @@ public class Balancer {
                     .map(entry -> {
                         SpecType specType = entry.getKey();
                         double totalSpecTypeWeight = teamBalanceInfo.players.stream()
-                                                                            .filter(player -> player.spec.specType == specType)
-                                                                            .mapToDouble(player -> player.weight)
+                                                                            .filter(indexedPlayer -> indexedPlayer.player.spec.specType == specType)
+                                                                            .mapToDouble(indexedPlayer -> indexedPlayer.player.weight)
                                                                             .sum();
                         return specType.getColor.apply(colors) + specType +
                                 colors.gray() + ": " +
@@ -125,28 +125,35 @@ public class Balancer {
                                 colors.gray() + " (" + colors.darkPurple() + WEIGHT_FORMAT.format(totalSpecTypeWeight / teamBalanceInfo.totalWeight * 100) + "%" + colors.gray() + ")";
                     })
                     .forEachOrdered(s -> sendMessage.accept("  " + s));
-            for (Player teamPlayer : teamBalanceInfo.players) {
-                sendMessage.accept("  " + teamPlayer.getInfo(colors));
+            sendMessage.accept(colors.gray() + "  -----------------------");
+            List<IndexedPlayer> players = teamBalanceInfo.players;
+            for (IndexedPlayer indexedPlayer : players) {
+                Player teamPlayer = indexedPlayer.player;
+                int index = indexedPlayer.index;
+                sendMessage.accept("  " + teamPlayer.getInfo(colors) + colors.gray() + " (" + colors.aqua() + index + colors.gray() + ")");
             }
         });
     }
 
 
     static class TeamBalanceInfo {
-        final List<Player> players = new ArrayList<>();
+        final List<IndexedPlayer> players = new ArrayList<>();
         final Map<SpecType, Integer> specTypeCount = new HashMap<>();
         double totalWeight = 0;
 
         public double getSpecTypeWeight(SpecType specType) {
             return players.stream()
-                          .filter(player -> player.spec.specType == specType)
-                          .mapToDouble(player -> player.weight)
+                          .filter(indexedPlayer -> indexedPlayer.player.spec.specType == specType)
+                          .mapToDouble(indexedPlayer -> indexedPlayer.player.weight)
                           .sum();
         }
 
         private void recalculateTotalWeight() {
-            totalWeight = players.stream().mapToDouble(player -> player.weight).sum();
+            totalWeight = players.stream().mapToDouble(indexedPlayer -> indexedPlayer.player.weight).sum();
         }
+    }
+
+    record IndexedPlayer(Player player, int index) {
     }
 
     record Player(Specialization spec, double weight) {

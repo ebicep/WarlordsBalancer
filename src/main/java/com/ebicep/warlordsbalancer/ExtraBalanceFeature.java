@@ -31,25 +31,25 @@ enum ExtraBalanceFeature {
                         .map(Map.Entry::getKey)
                         .orElseThrow();
                 // find player on blue/red to swap that has the spec type and would even out the weights the most
-                Balancer.Player bluePlayerToSwap = null;
-                Balancer.Player redPlayerToSwap = null;
-                List<Balancer.Player> bluePlayers = blueBalanceInfo.players;
-                List<Balancer.Player> redPlayers = redBalanceInfo.players;
-                List<Balancer.Player> swappableBluePlayers = bluePlayers
+                Balancer.IndexedPlayer bluePlayerToSwap = null;
+                Balancer.IndexedPlayer redPlayerToSwap = null;
+                List<Balancer.IndexedPlayer> bluePlayers = blueBalanceInfo.players;
+                List<Balancer.IndexedPlayer> redPlayers = redBalanceInfo.players;
+                List<Balancer.IndexedPlayer> swappableBluePlayers = bluePlayers
                         .stream()
-                        .filter(player -> player.spec().specType == specTypeToSwap)
+                        .filter(indexedPlayer -> indexedPlayer.player().spec().specType == specTypeToSwap)
                         .toList();
-                List<Balancer.Player> swappableRedPlayers = redPlayers
+                List<Balancer.IndexedPlayer> swappableRedPlayers = redPlayers
                         .stream()
-                        .filter(player -> player.spec().specType == specTypeToSwap)
+                        .filter(indexedPlayer -> indexedPlayer.player().spec().specType == specTypeToSwap)
                         .toList();
                 double weightDiff = blueBalanceInfo.totalWeight - redBalanceInfo.totalWeight;
                 double newTotalBlueWeight = 0;
                 double newTotalRedWeight = 0;
-                for (Balancer.Player swappableBluePlayer : swappableBluePlayers) {
-                    for (Balancer.Player swappableRedPlayer : swappableRedPlayers) {
-                        newTotalBlueWeight = blueBalanceInfo.totalWeight - swappableBluePlayer.weight() + swappableRedPlayer.weight();
-                        newTotalRedWeight = redBalanceInfo.totalWeight - swappableRedPlayer.weight() + swappableBluePlayer.weight();
+                for (Balancer.IndexedPlayer swappableBluePlayer : swappableBluePlayers) {
+                    for (Balancer.IndexedPlayer swappableRedPlayer : swappableRedPlayers) {
+                        newTotalBlueWeight = blueBalanceInfo.totalWeight - swappableBluePlayer.player().weight() + swappableRedPlayer.player().weight();
+                        newTotalRedWeight = redBalanceInfo.totalWeight - swappableRedPlayer.player().weight() + swappableBluePlayer.player().weight();
                         if (Math.abs(newTotalBlueWeight - newTotalRedWeight) < weightDiff) {
                             weightDiff = Math.abs(newTotalBlueWeight - newTotalRedWeight);
                             bluePlayerToSwap = swappableBluePlayer;
@@ -71,12 +71,12 @@ enum ExtraBalanceFeature {
                 previousTeamWeightDiff = newTotalWeightDiff;
                 sendMessage.accept(colors.yellow() + "Swapping " +
                         colors.blue() + "BLUE" +
-                        colors.gray() + "(" + bluePlayerToSwap.getInfo(colors) +
+                        colors.gray() + "(" + bluePlayerToSwap.player().getInfo(colors) +
                         colors.gray() + ") " +
                         colors.red() + "RED" +
-                        colors.gray() + "(" + redPlayerToSwap.getInfo(colors) +
+                        colors.gray() + "(" + redPlayerToSwap.player().getInfo(colors) +
                         colors.gray() + ") = (" +
-                        colors.lightPurple() + Balancer.WEIGHT_FORMAT.format(Math.abs(bluePlayerToSwap.weight() - redPlayerToSwap.weight())) +
+                        colors.lightPurple() + Balancer.WEIGHT_FORMAT.format(Math.abs(bluePlayerToSwap.player().weight() - redPlayerToSwap.player().weight())) +
                         colors.gray() + ")");
                 bluePlayers.add(bluePlayers.indexOf(bluePlayerToSwap), redPlayerToSwap);
                 bluePlayers.remove(bluePlayerToSwap);
