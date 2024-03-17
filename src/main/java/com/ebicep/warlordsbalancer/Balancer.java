@@ -46,9 +46,12 @@ public class Balancer {
         Color colors = printer.colors;
         sendMessage.accept(colors.white() + "-------------------------------------------------");
         sendMessage.accept(colors.white() + "-------------------------------------------------");
+        sendMessage.accept(colors.gray() + "Iterations: " + colors.green() + iterations);
+        sendMessage.accept(colors.gray() + "Player Count: " + colors.green() + playerCount);
         sendMessage.accept(colors.gray() + "Balance Method: " + colors.green() + balanceMethod);
         sendMessage.accept(colors.gray() + "Random Weight Method: " + colors.green() + randomWeightMethod);
         sendMessage.accept(colors.gray() + "Extra Balance Features: " + colors.green() + extraBalanceFeatures);
+        double averageWeightDiff = 0;
         double maxWeightDiff = 0;
         Map<Team, TeamBalanceInfo> mostUnbalancedTeam = new HashMap<>();
         for (int i = 0; i < iterations; i++) {
@@ -70,13 +73,16 @@ public class Balancer {
 //                   }).thenComparingDouble(player -> -player.weight))
 //                   .forEachOrdered(player -> sendMessage.accept("  " + player.getInfo(colors)));
 //            sendMessage.accept(colors.white() + "-------------------------------------------------");
+
             Map<Team, TeamBalanceInfo> teams = getBalancedTeams(players, balanceMethod);
             double weightDiff = Math.abs(teams.get(Team.BLUE).totalWeight - teams.get(Team.RED).totalWeight);
+            averageWeightDiff += weightDiff;
             if (weightDiff > maxWeightDiff) {
                 maxWeightDiff = weightDiff;
                 mostUnbalancedTeam = teams;
             }
         }
+        sendMessage.accept(colors.gray() + "Average Weight Diff: " + colors.darkPurple() + WEIGHT_FORMAT.format(averageWeightDiff / iterations));
         sendMessage.accept(colors.gray() + "Max Weight Diff: " + colors.darkPurple() + WEIGHT_FORMAT.format(maxWeightDiff));
         printBalanceInfo(printer, mostUnbalancedTeam);
 
@@ -85,7 +91,12 @@ public class Balancer {
         }
         for (ExtraBalanceFeature extraBalanceFeature : extraBalanceFeatures) {
             sendMessage.accept(colors.yellow() + "Extra Balance Feature: " + extraBalanceFeature);
-            extraBalanceFeature.apply(printer, mostUnbalancedTeam);
+            boolean applied = extraBalanceFeature.apply(printer, mostUnbalancedTeam);
+            if (!applied) {
+                sendMessage.accept(colors.yellow() + "No changes applied");
+                sendMessage.accept(colors.gray() + "--------------------------------");
+                continue;
+            }
             TeamBalanceInfo blueBalanceInfo = mostUnbalancedTeam.get(Team.BLUE);
             TeamBalanceInfo redBalanceInfo = mostUnbalancedTeam.get(Team.RED);
             blueBalanceInfo.recalculateTotalWeight();
@@ -97,6 +108,12 @@ public class Balancer {
         }
         sendMessage.accept(colors.white() + "-------------------------------------------------");
         sendMessage.accept(colors.white() + "-------------------------------------------------");
+
+        mostUnbalancedTeam.forEach((key, value) -> {
+            for (DebuggedPlayer player : value.players) {
+                sendMessage.accept("new Player(" + player.player.spec + ", " + WEIGHT_FORMAT.format(player.player.weight) + ")");
+            }
+        });
     }
 
     private static Map<Team, TeamBalanceInfo> getBalancedTeams(Set<Player> players, BalanceMethod balanceMethod) {
@@ -142,10 +159,16 @@ public class Balancer {
     }
 
 
+    /**
+     * Debug message supplier
+     */
     interface DebuggedMessage {
         String getMessage(Color colors);
     }
 
+    /**
+     * Balance filters
+     */
     interface Filter {
         boolean test(Player player);
 
@@ -169,6 +192,9 @@ public class Balancer {
 
     }
 
+    /**
+     * Balance information for an entire team
+     */
     static class TeamBalanceInfo {
         final List<DebuggedPlayer> players = new ArrayList<>();
         final Map<SpecType, Integer> specTypeCount = new HashMap<>();
@@ -178,6 +204,12 @@ public class Balancer {
             players.add(debuggedPlayer);
             specTypeCount.merge(debuggedPlayer.player.spec.specType, 1, Integer::sum);
             totalWeight += debuggedPlayer.player.weight;
+        }
+
+        public void removePlayer(DebuggedPlayer debuggedPlayer) {
+            players.remove(debuggedPlayer);
+            specTypeCount.merge(debuggedPlayer.player.spec.specType, -1, Integer::sum);
+            totalWeight -= debuggedPlayer.player.weight;
         }
 
         public double getSpecTypeWeight(SpecType specType) {
@@ -192,6 +224,12 @@ public class Balancer {
         }
     }
 
+    /**
+     * Player wrapper class with debug messages
+     *
+     * @param player           the player
+     * @param debuggedMessages debug messages
+     */
     record DebuggedPlayer(Player player, List<DebuggedMessage> debuggedMessages) {
         public DebuggedPlayer(Player player, DebuggedMessage... messages) {
             this(player, new ArrayList<>(List.of(messages)));
@@ -208,12 +246,34 @@ public class Balancer {
         }
     }
 
-    record Player(Specialization spec, double weight) {
+    /**
+     * @param uuid   the uuid of the player - needed for equals and hashcode
+     * @param spec   the specialization of the player
+     * @param weight the weight of the player
+     */
+    record Player(UUID uuid, Specialization spec, double weight) {
+
+        public Player(Specialization spec, double weight) {
+            this(UUID.randomUUID(), spec, weight);
+        }
+
         public String getInfo(Color colors) {
             return spec.specType.getColor.apply(colors) + spec + colors.gray() + " - " + colors.lightPurple() + WEIGHT_FORMAT.format(weight);
         }
+
+        @Override
+        public String toString() {
+            return "Player{" +
+                    "" + spec +
+                    ", " + WEIGHT_FORMAT.format(weight) +
+                    '}';
+        }
     }
 
+    /**
+     * @param sendMessage the consumer to send messages to
+     * @param colors      color interface to use for coloring messages
+     */
     record Printer(Consumer<String> sendMessage, Color colors) {
 
     }

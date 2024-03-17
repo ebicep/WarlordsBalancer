@@ -10,4 +10,9 @@ enum Team {
     Team(Function<Color, String> getColor) {
         this.getColor = getColor;
     }
+
+    public Team next() {
+        return VALUES[(this.ordinal() + 1) % VALUES.length];
+    }
+
 }

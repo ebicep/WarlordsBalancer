@@ -67,6 +67,7 @@ enum BalanceMethod {
         @Override
         public void balance(Set<Balancer.Player> players, List<Balancer.Filter> filters, Map<Team, Balancer.TeamBalanceInfo> teams) {
             int amountOfPlayers = players.size();
+            Team lastTeam = Team.RED;
             for (Balancer.Filter filter : filters) {
                 List<Balancer.Player> playerList = players.stream()
                                                           .filter(filter::test)
@@ -76,15 +77,12 @@ enum BalanceMethod {
                     Balancer.Player player = playerList.get(i);
                     players.remove(player);
                     boolean firstOfCategory = i == 0;// && filter instanceof Balancer.Filter.SpecTypeFilter;
-                    Comparator<Map.Entry<Team, Balancer.TeamBalanceInfo>> comparator =
-                            firstOfCategory ?
-                            Comparator.comparingDouble(entry -> entry.getValue().totalWeight) :
-                            Comparator.comparingInt(entry -> entry.getValue().players.size());
-                    Team team = teams.entrySet()
-                                     .stream()
-                                     .min(comparator)
-                                     .map(Map.Entry::getKey)
-                                     .orElse(Team.BLUE);
+                    Team team = firstOfCategory ? teams.entrySet()
+                                                       .stream()
+                                                       .min(Comparator.comparingDouble(entry -> entry.getValue().totalWeight))
+                                                       .map(Map.Entry::getKey)
+                                                       .orElse(Team.BLUE) : lastTeam.next();
+                    lastTeam = team;
                     int index = amountOfPlayers - players.size();
                     Balancer.DebuggedPlayer debuggedPlayer = new Balancer.DebuggedPlayer(player, colors -> colors.aqua() + index);
                     if (firstOfCategory) {
@@ -104,6 +102,7 @@ enum BalanceMethod {
                     teams.get(team).addPlayer(debuggedPlayer);
                 }
             }
+
         }
     },
 

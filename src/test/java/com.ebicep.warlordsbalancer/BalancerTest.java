@@ -11,8 +11,8 @@ public class BalancerTest {
     }
 
     @Test
-    public void v1RandomSwap() {
-        Balancer.balance(BalanceMethod.V1, RandomWeightMethod.RANDOM, ExtraBalanceFeature.SWAP);
+    public void v1RandomSwapSpecTypes() {
+        Balancer.balance(BalanceMethod.V1, RandomWeightMethod.RANDOM, ExtraBalanceFeature.SWAP_SPEC_TYPES);
     }
 
     @Test
@@ -21,8 +21,8 @@ public class BalancerTest {
     }
 
     @Test
-    public void v1NormalDistributionSwap() {
-        Balancer.balance(BalanceMethod.V1, RandomWeightMethod.NORMAL_DISTRIBUTION, ExtraBalanceFeature.SWAP);
+    public void v1NormalDistributionSwapSpecTypes() {
+        Balancer.balance(BalanceMethod.V1, RandomWeightMethod.NORMAL_DISTRIBUTION, ExtraBalanceFeature.SWAP_SPEC_TYPES);
     }
 
     @Test
@@ -31,8 +31,8 @@ public class BalancerTest {
     }
 
     @Test
-    public void v2RandomSwap() {
-        Balancer.balance(BalanceMethod.V2, RandomWeightMethod.RANDOM, ExtraBalanceFeature.SWAP);
+    public void v2RandomSwapSpecTypes() {
+        Balancer.balance(BalanceMethod.V2, RandomWeightMethod.RANDOM, ExtraBalanceFeature.SWAP_SPEC_TYPES);
     }
 
     @Test
@@ -41,8 +41,8 @@ public class BalancerTest {
     }
 
     @Test
-    public void v2NormalDistributionSwap() {
-        Balancer.balance(BalanceMethod.V2, RandomWeightMethod.NORMAL_DISTRIBUTION, ExtraBalanceFeature.SWAP);
+    public void v2NormalDistributionSwapSpecTypes() {
+        Balancer.balance(BalanceMethod.V2, RandomWeightMethod.NORMAL_DISTRIBUTION, ExtraBalanceFeature.SWAP_SPEC_TYPES);
     }
 
     @Test
@@ -51,8 +51,8 @@ public class BalancerTest {
     }
 
     @Test
-    public void v2_1RandomSwap() {
-        Balancer.balance(BalanceMethod.V2_1, RandomWeightMethod.RANDOM, ExtraBalanceFeature.SWAP);
+    public void v2_1RandomSwapSpecTypes() {
+        Balancer.balance(BalanceMethod.V2_1, RandomWeightMethod.RANDOM, ExtraBalanceFeature.SWAP_SPEC_TYPES);
     }
 
     @Test
@@ -61,8 +61,13 @@ public class BalancerTest {
     }
 
     @Test
-    public void v2_1NormalDistributionSwap() {
-        Balancer.balance(BalanceMethod.V2_1, RandomWeightMethod.NORMAL_DISTRIBUTION, ExtraBalanceFeature.SWAP);
+    public void v2_1NormalDistributionSwapUneven() {
+        Balancer.balance(BalanceMethod.V2_1, RandomWeightMethod.NORMAL_DISTRIBUTION, ExtraBalanceFeature.SWAP_UNEVEN_TEAMS);
+    }
+
+    @Test
+    public void v2_1NormalDistributionSwapSpecTypes() {
+        Balancer.balance(BalanceMethod.V2_1, RandomWeightMethod.NORMAL_DISTRIBUTION, ExtraBalanceFeature.SWAP_SPEC_TYPES);
     }
 
 
