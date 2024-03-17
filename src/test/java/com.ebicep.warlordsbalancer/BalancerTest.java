@@ -56,6 +56,17 @@ public class BalancerTest {
     }
 
     @Test
+    public void v2_1RandomExtra() {
+        Balancer.balance(BalanceMethod.V2_1,
+                RandomWeightMethod.RANDOM,
+                ExtraBalanceFeature.SWAP_UNEVEN_TEAMS,
+                ExtraBalanceFeature.SWAP_SPEC_TYPES,
+                ExtraBalanceFeature.SWAP_TEAM_SPEC_TYPES
+        );
+    }
+
+
+    @Test
     public void v2_1NormalDistribution() {
         Balancer.balance(BalanceMethod.V2_1, RandomWeightMethod.NORMAL_DISTRIBUTION);
     }
@@ -68,6 +79,16 @@ public class BalancerTest {
     @Test
     public void v2_1NormalDistributionSwapSpecTypes() {
         Balancer.balance(BalanceMethod.V2_1, RandomWeightMethod.NORMAL_DISTRIBUTION, ExtraBalanceFeature.SWAP_SPEC_TYPES);
+    }
+
+    @Test
+    public void v2_1NormalDistributionExtra() {
+        Balancer.balance(BalanceMethod.V2_1,
+                RandomWeightMethod.NORMAL_DISTRIBUTION,
+                ExtraBalanceFeature.SWAP_UNEVEN_TEAMS,
+                ExtraBalanceFeature.SWAP_SPEC_TYPES,
+                ExtraBalanceFeature.SWAP_TEAM_SPEC_TYPES
+        );
     }
 
 
