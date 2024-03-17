@@ -3,7 +3,7 @@ package com.ebicep.warlordsbalancer;
 import java.util.function.Function;
 
 enum Team {
-    RED(Color::red), BLUE(Color::blue);
+    BLUE(Color::blue), RED(Color::red);
     public static final Team[] VALUES = values();
     public final Function<Color, String> getColor;
 

@@ -2,7 +2,7 @@ package com.ebicep.warlordsbalancer;
 
 import java.util.function.Function;
 
-enum SpecType {
+public enum SpecType {
     DAMAGE(Color::darkRed), TANK(Color::gold), HEALER(Color::darkGreen);
     public static final SpecType[] VALUES = values();
     public final Function<Color, String> getColor;

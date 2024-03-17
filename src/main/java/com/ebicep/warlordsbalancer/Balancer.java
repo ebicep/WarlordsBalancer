@@ -1,29 +1,37 @@
 package com.ebicep.warlordsbalancer;
 
+
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 public class Balancer {
 
     public static final DecimalFormat WEIGHT_FORMAT = new DecimalFormat("#.##");
     public static final double MAX_WEIGHT = 4;
     public static final double MIN_WEIGHT = .43;
-    public static final List<Predicate<Player>> FILTERS = List.of(
-            player -> player.spec == Specialization.DEFENDER,
-            player -> player.spec == Specialization.CRYOMANCER,
-            player -> player.spec.specType == SpecType.TANK,
-            player -> player.spec.specType == SpecType.DAMAGE,
-            player -> player.spec.specType == SpecType.HEALER
+    private static final List<Filter> FILTERS = List.of(
+            (Filter.SpecificationFilter) () -> Specialization.DEFENDER,
+            (Filter.SpecificationFilter) () -> Specialization.CRYOMANCER,
+            (Filter.SpecTypeFilter) () -> SpecType.TANK,
+            (Filter.SpecTypeFilter) () -> SpecType.DAMAGE,
+            (Filter.SpecTypeFilter) () -> SpecType.HEALER
     );
+
 
     public static void balance(
             BalanceMethod balanceMethod,
             RandomWeightMethod randomWeightMethod,
             ExtraBalanceFeature... extraBalanceFeatures
     ) {
-        balance(new Printer(System.out::println, new Color() {}), 1, 22, balanceMethod, randomWeightMethod, EnumSet.copyOf(List.of(extraBalanceFeatures)));
+        List<ExtraBalanceFeature> features = List.of(extraBalanceFeatures);
+        balance(new Printer(System.out::println, new Color() {}),
+                1_000_000,
+                22,
+                balanceMethod,
+                randomWeightMethod,
+                features.isEmpty() ? EnumSet.noneOf(ExtraBalanceFeature.class) : EnumSet.copyOf(features)
+        );
     }
 
     public static void balance(
@@ -48,6 +56,20 @@ public class Balancer {
             for (int j = 0; j < playerCount; j++) {
                 players.add(new Player(Specialization.getRandomSpec(), randomWeightMethod.generateRandomWeight()));
             }
+            // printing list of players to be balanced in order
+//            players.stream()
+//                   .sorted(Comparator.<Player>comparingInt(player -> {
+//                       int index = 0;
+//                       for (Predicate<Player> filter : FILTERS) {
+//                           if (filter.test(player)) {
+//                               return index;
+//                           }
+//                           index++;
+//                       }
+//                       return index;
+//                   }).thenComparingDouble(player -> -player.weight))
+//                   .forEachOrdered(player -> sendMessage.accept("  " + player.getInfo(colors)));
+//            sendMessage.accept(colors.white() + "-------------------------------------------------");
             Map<Team, TeamBalanceInfo> teams = getBalancedTeams(players, balanceMethod);
             double weightDiff = Math.abs(teams.get(Team.BLUE).totalWeight - teams.get(Team.RED).totalWeight);
             if (weightDiff > maxWeightDiff) {
@@ -78,26 +100,12 @@ public class Balancer {
     }
 
     private static Map<Team, TeamBalanceInfo> getBalancedTeams(Set<Player> players, BalanceMethod balanceMethod) {
-        int amountOfPlayers = players.size();
-
-        Map<Team, TeamBalanceInfo> teams = new HashMap<>();
+        Map<Team, TeamBalanceInfo> teams = new LinkedHashMap<>();
         for (Team team : Team.VALUES) {
             teams.put(team, new TeamBalanceInfo());
         }
 
-        for (Predicate<Player> filter : FILTERS) {
-            players.stream()
-                   .filter(filter)
-                   .sorted(Comparator.comparingDouble(player -> -player.weight))
-                   .forEachOrdered(player -> {
-                       players.remove(player);
-                       Team team = balanceMethod.getTeam(amountOfPlayers, teams);
-                       TeamBalanceInfo teamBalanceInfo = teams.get(team);
-                       teamBalanceInfo.players.add(new IndexedPlayer(player, amountOfPlayers - players.size()));
-                       teamBalanceInfo.totalWeight += player.weight;
-                       teamBalanceInfo.specTypeCount.merge(player.spec.specType, 1, Integer::sum);
-                   });
-        }
+        balanceMethod.balance(players, FILTERS, teams);
 
         return teams;
     }
@@ -115,8 +123,8 @@ public class Balancer {
                     .map(entry -> {
                         SpecType specType = entry.getKey();
                         double totalSpecTypeWeight = teamBalanceInfo.players.stream()
-                                                                            .filter(indexedPlayer -> indexedPlayer.player.spec.specType == specType)
-                                                                            .mapToDouble(indexedPlayer -> indexedPlayer.player.weight)
+                                                                            .filter(debuggedPlayer -> debuggedPlayer.player.spec.specType == specType)
+                                                                            .mapToDouble(debuggedPlayer -> debuggedPlayer.player.weight)
                                                                             .sum();
                         return specType.getColor.apply(colors) + specType +
                                 colors.gray() + ": " +
@@ -126,34 +134,78 @@ public class Balancer {
                     })
                     .forEachOrdered(s -> sendMessage.accept("  " + s));
             sendMessage.accept(colors.gray() + "  -----------------------");
-            List<IndexedPlayer> players = teamBalanceInfo.players;
-            for (IndexedPlayer indexedPlayer : players) {
-                Player teamPlayer = indexedPlayer.player;
-                int index = indexedPlayer.index;
-                sendMessage.accept("  " + teamPlayer.getInfo(colors) + colors.gray() + " (" + colors.aqua() + index + colors.gray() + ")");
+            List<DebuggedPlayer> players = teamBalanceInfo.players;
+            for (DebuggedPlayer debuggedPlayer : players) {
+                sendMessage.accept("  " + debuggedPlayer.getInfo(colors));
             }
         });
     }
 
 
+    interface DebuggedMessage {
+        String getMessage(Color colors);
+    }
+
+    interface Filter {
+        boolean test(Player player);
+
+        interface SpecTypeFilter extends Filter {
+            @Override
+            default boolean test(Player player) {
+                return player.spec().specType == specType();
+            }
+
+            SpecType specType();
+        }
+
+        interface SpecificationFilter extends Filter {
+            @Override
+            default boolean test(Player player) {
+                return player.spec() == spec();
+            }
+
+            Specialization spec();
+        }
+
+    }
+
     static class TeamBalanceInfo {
-        final List<IndexedPlayer> players = new ArrayList<>();
+        final List<DebuggedPlayer> players = new ArrayList<>();
         final Map<SpecType, Integer> specTypeCount = new HashMap<>();
         double totalWeight = 0;
 
+        public void addPlayer(DebuggedPlayer debuggedPlayer) {
+            players.add(debuggedPlayer);
+            specTypeCount.merge(debuggedPlayer.player.spec.specType, 1, Integer::sum);
+            totalWeight += debuggedPlayer.player.weight;
+        }
+
         public double getSpecTypeWeight(SpecType specType) {
             return players.stream()
-                          .filter(indexedPlayer -> indexedPlayer.player.spec.specType == specType)
-                          .mapToDouble(indexedPlayer -> indexedPlayer.player.weight)
+                          .filter(debuggedPlayer -> debuggedPlayer.player.spec.specType == specType)
+                          .mapToDouble(debuggedPlayer -> debuggedPlayer.player.weight)
                           .sum();
         }
 
         private void recalculateTotalWeight() {
-            totalWeight = players.stream().mapToDouble(indexedPlayer -> indexedPlayer.player.weight).sum();
+            totalWeight = players.stream().mapToDouble(debuggedPlayer -> debuggedPlayer.player.weight).sum();
         }
     }
 
-    record IndexedPlayer(Player player, int index) {
+    record DebuggedPlayer(Player player, List<DebuggedMessage> debuggedMessages) {
+        public DebuggedPlayer(Player player, DebuggedMessage... messages) {
+            this(player, new ArrayList<>(List.of(messages)));
+        }
+
+        public String getInfo(Color colors) {
+            StringBuilder info = new StringBuilder(player.getInfo(colors));
+            for (DebuggedMessage debuggedMessage : debuggedMessages) {
+                info.append(colors.gray()).append(" (");
+                info.append(debuggedMessage.getMessage(colors));
+                info.append(colors.gray()).append(")");
+            }
+            return info.toString();
+        }
     }
 
     record Player(Specialization spec, double weight) {

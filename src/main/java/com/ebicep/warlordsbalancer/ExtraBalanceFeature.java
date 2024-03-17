@@ -31,23 +31,23 @@ enum ExtraBalanceFeature {
                         .map(Map.Entry::getKey)
                         .orElseThrow();
                 // find player on blue/red to swap that has the spec type and would even out the weights the most
-                Balancer.IndexedPlayer bluePlayerToSwap = null;
-                Balancer.IndexedPlayer redPlayerToSwap = null;
-                List<Balancer.IndexedPlayer> bluePlayers = blueBalanceInfo.players;
-                List<Balancer.IndexedPlayer> redPlayers = redBalanceInfo.players;
-                List<Balancer.IndexedPlayer> swappableBluePlayers = bluePlayers
+                Balancer.DebuggedPlayer bluePlayerToSwap = null;
+                Balancer.DebuggedPlayer redPlayerToSwap = null;
+                List<Balancer.DebuggedPlayer> bluePlayers = blueBalanceInfo.players;
+                List<Balancer.DebuggedPlayer> redPlayers = redBalanceInfo.players;
+                List<Balancer.DebuggedPlayer> swappableBluePlayers = bluePlayers
                         .stream()
-                        .filter(indexedPlayer -> indexedPlayer.player().spec().specType == specTypeToSwap)
+                        .filter(debuggedPlayer -> debuggedPlayer.player().spec().specType == specTypeToSwap)
                         .toList();
-                List<Balancer.IndexedPlayer> swappableRedPlayers = redPlayers
+                List<Balancer.DebuggedPlayer> swappableRedPlayers = redPlayers
                         .stream()
-                        .filter(indexedPlayer -> indexedPlayer.player().spec().specType == specTypeToSwap)
+                        .filter(debuggedPlayer -> debuggedPlayer.player().spec().specType == specTypeToSwap)
                         .toList();
                 double weightDiff = blueBalanceInfo.totalWeight - redBalanceInfo.totalWeight;
                 double newTotalBlueWeight = 0;
                 double newTotalRedWeight = 0;
-                for (Balancer.IndexedPlayer swappableBluePlayer : swappableBluePlayers) {
-                    for (Balancer.IndexedPlayer swappableRedPlayer : swappableRedPlayers) {
+                for (Balancer.DebuggedPlayer swappableBluePlayer : swappableBluePlayers) {
+                    for (Balancer.DebuggedPlayer swappableRedPlayer : swappableRedPlayers) {
                         newTotalBlueWeight = blueBalanceInfo.totalWeight - swappableBluePlayer.player().weight() + swappableRedPlayer.player().weight();
                         newTotalRedWeight = redBalanceInfo.totalWeight - swappableRedPlayer.player().weight() + swappableBluePlayer.player().weight();
                         if (Math.abs(newTotalBlueWeight - newTotalRedWeight) < weightDiff) {

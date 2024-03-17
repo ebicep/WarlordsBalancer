@@ -45,4 +45,25 @@ public class BalancerTest {
         Balancer.balance(BalanceMethod.V2, RandomWeightMethod.NORMAL_DISTRIBUTION, ExtraBalanceFeature.SWAP);
     }
 
+    @Test
+    public void v2_1Random() {
+        Balancer.balance(BalanceMethod.V2_1, RandomWeightMethod.RANDOM);
+    }
+
+    @Test
+    public void v2_1RandomSwap() {
+        Balancer.balance(BalanceMethod.V2_1, RandomWeightMethod.RANDOM, ExtraBalanceFeature.SWAP);
+    }
+
+    @Test
+    public void v2_1NormalDistribution() {
+        Balancer.balance(BalanceMethod.V2_1, RandomWeightMethod.NORMAL_DISTRIBUTION);
+    }
+
+    @Test
+    public void v2_1NormalDistributionSwap() {
+        Balancer.balance(BalanceMethod.V2_1, RandomWeightMethod.NORMAL_DISTRIBUTION, ExtraBalanceFeature.SWAP);
+    }
+
+
 }
