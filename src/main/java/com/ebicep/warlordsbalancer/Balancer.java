@@ -42,15 +42,14 @@ public class Balancer {
             RandomWeightMethod randomWeightMethod,
             EnumSet<ExtraBalanceFeature> extraBalanceFeatures
     ) {
-        Consumer<String> sendMessage = printer.sendMessage;
         Color colors = printer.colors;
-        sendMessage.accept(colors.white() + "-------------------------------------------------");
-        sendMessage.accept(colors.white() + "-------------------------------------------------");
-        sendMessage.accept(colors.gray() + "Iterations: " + colors.green() + iterations);
-        sendMessage.accept(colors.gray() + "Player Count: " + colors.green() + playerCount);
-        sendMessage.accept(colors.gray() + "Balance Method: " + colors.green() + balanceMethod);
-        sendMessage.accept(colors.gray() + "Random Weight Method: " + colors.green() + randomWeightMethod);
-        sendMessage.accept(colors.gray() + "Extra Balance Features: " + colors.green() + extraBalanceFeatures);
+        printer.sendMessage(colors.white() + "-------------------------------------------------");
+        printer.sendMessage(colors.white() + "-------------------------------------------------");
+        printer.sendMessage(colors.gray() + "Iterations: " + colors.green() + iterations);
+        printer.sendMessage(colors.gray() + "Player Count: " + colors.green() + playerCount);
+        printer.sendMessage(colors.gray() + "Balance Method: " + colors.green() + balanceMethod);
+        printer.sendMessage(colors.gray() + "Random Weight Method: " + colors.green() + randomWeightMethod);
+        printer.sendMessage(colors.gray() + "Extra Balance Features: " + colors.green() + extraBalanceFeatures);
         double averageWeightDiff = 0;
         double maxWeightDiff = 0;
         Map<Team, TeamBalanceInfo> mostUnbalancedTeam = new HashMap<>();
@@ -59,22 +58,41 @@ public class Balancer {
             for (int j = 0; j < playerCount; j++) {
                 players.add(new Player(Specialization.getRandomSpec(), randomWeightMethod.generateRandomWeight()));
             }
-            // printing list of players to be balanced in order
-//            players.stream()
-//                   .sorted(Comparator.<Player>comparingInt(player -> {
-//                       int index = 0;
-//                       for (Predicate<Player> filter : FILTERS) {
-//                           if (filter.test(player)) {
-//                               return index;
-//                           }
-//                           index++;
-//                       }
-//                       return index;
-//                   }).thenComparingDouble(player -> -player.weight))
-//                   .forEachOrdered(player -> sendMessage.accept("  " + player.getInfo(colors)));
-//            sendMessage.accept(colors.white() + "-------------------------------------------------");
-
+            if (iterations == 1) {
+                // printing list of players to be balanced in order
+                players.stream()
+                       .sorted(Comparator.<Player>comparingInt(player -> {
+                           int index = 0;
+                           for (Filter filter : FILTERS) {
+                               if (filter.test(player)) {
+                                   return index;
+                               }
+                               index++;
+                           }
+                           return index;
+                       }).thenComparingDouble(player -> -player.weight))
+                       .forEachOrdered(player -> printer.sendMessage("  " + player.getInfo(colors)));
+                printer.sendMessage(colors.white() + "-------------------------------------------------");
+            }
             Map<Team, TeamBalanceInfo> teams = getBalancedTeams(players, balanceMethod);
+            printer.setEnabled(false);
+            for (ExtraBalanceFeature extraBalanceFeature : extraBalanceFeatures) {
+                printer.sendMessage(colors.yellow() + "Extra Balance Feature: " + extraBalanceFeature);
+                boolean applied = extraBalanceFeature.apply(printer, teams);
+                if (!applied) {
+                    printer.sendMessage(colors.yellow() + "No changes applied");
+                    printer.sendMessage(colors.gray() + "--------------------------------");
+                    continue;
+                }
+                TeamBalanceInfo blueBalanceInfo = teams.get(Team.BLUE);
+                TeamBalanceInfo redBalanceInfo = teams.get(Team.RED);
+                blueBalanceInfo.recalculateTotalWeight();
+                redBalanceInfo.recalculateTotalWeight();
+                maxWeightDiff = Math.abs(blueBalanceInfo.totalWeight - redBalanceInfo.totalWeight);
+                printer.sendMessage(colors.gray() + "Max Weight Diff: " + colors.darkPurple() + WEIGHT_FORMAT.format(maxWeightDiff));
+                printBalanceInfo(printer, teams);
+                printer.sendMessage(colors.gray() + "--------------------------------");
+            }
             double weightDiff = Math.abs(teams.get(Team.BLUE).totalWeight - teams.get(Team.RED).totalWeight);
             averageWeightDiff += weightDiff;
             if (weightDiff > maxWeightDiff) {
@@ -82,36 +100,37 @@ public class Balancer {
                 mostUnbalancedTeam = teams;
             }
         }
-        sendMessage.accept(colors.gray() + "Average Weight Diff: " + colors.darkPurple() + WEIGHT_FORMAT.format(averageWeightDiff / iterations));
-        sendMessage.accept(colors.gray() + "Max Weight Diff: " + colors.darkPurple() + WEIGHT_FORMAT.format(maxWeightDiff));
+        printer.setEnabled(true);
+        printer.sendMessage(colors.gray() + "Average Weight Diff: " + colors.darkPurple() + WEIGHT_FORMAT.format(averageWeightDiff / iterations));
+        printer.sendMessage(colors.gray() + "Max Weight Diff: " + colors.darkPurple() + WEIGHT_FORMAT.format(maxWeightDiff));
         printBalanceInfo(printer, mostUnbalancedTeam);
 
-        if (!extraBalanceFeatures.isEmpty()) {
-            sendMessage.accept(colors.white() + "-------------------------------------------------");
-        }
-        for (ExtraBalanceFeature extraBalanceFeature : extraBalanceFeatures) {
-            sendMessage.accept(colors.yellow() + "Extra Balance Feature: " + extraBalanceFeature);
-            boolean applied = extraBalanceFeature.apply(printer, mostUnbalancedTeam);
-            if (!applied) {
-                sendMessage.accept(colors.yellow() + "No changes applied");
-                sendMessage.accept(colors.gray() + "--------------------------------");
-                continue;
-            }
-            TeamBalanceInfo blueBalanceInfo = mostUnbalancedTeam.get(Team.BLUE);
-            TeamBalanceInfo redBalanceInfo = mostUnbalancedTeam.get(Team.RED);
-            blueBalanceInfo.recalculateTotalWeight();
-            redBalanceInfo.recalculateTotalWeight();
-            maxWeightDiff = Math.abs(blueBalanceInfo.totalWeight - redBalanceInfo.totalWeight);
-            sendMessage.accept(colors.gray() + "Max Weight Diff: " + colors.darkPurple() + WEIGHT_FORMAT.format(maxWeightDiff));
-            printBalanceInfo(printer, mostUnbalancedTeam);
-            sendMessage.accept(colors.gray() + "--------------------------------");
-        }
-        sendMessage.accept(colors.white() + "-------------------------------------------------");
-        sendMessage.accept(colors.white() + "-------------------------------------------------");
+//        if (!extraBalanceFeatures.isEmpty()) {
+//            printer.sendMessage(colors.white() + "-------------------------------------------------");
+//        }
+//        for (ExtraBalanceFeature extraBalanceFeature : extraBalanceFeatures) {
+//            printer.sendMessage(colors.yellow() + "Extra Balance Feature: " + extraBalanceFeature);
+//            boolean applied = extraBalanceFeature.apply(printer, mostUnbalancedTeam);
+//            if (!applied) {
+//                printer.sendMessage(colors.yellow() + "No changes applied");
+//                printer.sendMessage(colors.gray() + "--------------------------------");
+//                continue;
+//            }
+//            TeamBalanceInfo blueBalanceInfo = mostUnbalancedTeam.get(Team.BLUE);
+//            TeamBalanceInfo redBalanceInfo = mostUnbalancedTeam.get(Team.RED);
+//            blueBalanceInfo.recalculateTotalWeight();
+//            redBalanceInfo.recalculateTotalWeight();
+//            maxWeightDiff = Math.abs(blueBalanceInfo.totalWeight - redBalanceInfo.totalWeight);
+//            printer.sendMessage(colors.gray() + "Max Weight Diff: " + colors.darkPurple() + WEIGHT_FORMAT.format(maxWeightDiff));
+//            printBalanceInfo(printer, mostUnbalancedTeam);
+//            printer.sendMessage(colors.gray() + "--------------------------------");
+//        }
+        printer.sendMessage(colors.white() + "-------------------------------------------------");
+        printer.sendMessage(colors.white() + "-------------------------------------------------");
 
         mostUnbalancedTeam.forEach((key, value) -> {
             for (DebuggedPlayer player : value.players) {
-                sendMessage.accept("new Player(" + player.player.spec + ", " + WEIGHT_FORMAT.format(player.player.weight) + ")");
+                printer.sendMessage("new Player(" + player.player.spec + ", " + WEIGHT_FORMAT.format(player.player.weight) + ")");
             }
         });
     }
@@ -128,11 +147,10 @@ public class Balancer {
     }
 
     private static void printBalanceInfo(Printer printer, Map<Team, TeamBalanceInfo> teams) {
-        Consumer<String> sendMessage = printer.sendMessage;
         Color colors = printer.colors;
         teams.forEach((team, teamBalanceInfo) -> {
-            sendMessage.accept(colors.gray() + "-----------------------");
-            sendMessage.accept(team.getColor.apply(colors) + team + colors.gray() + " - " + colors.darkPurple() + WEIGHT_FORMAT.format(teamBalanceInfo.totalWeight));
+            printer.sendMessage(colors.gray() + "-----------------------");
+            printer.sendMessage(team.getColor.apply(colors) + team + colors.gray() + " - " + colors.darkPurple() + WEIGHT_FORMAT.format(teamBalanceInfo.totalWeight));
             teamBalanceInfo.specTypeCount
                     .entrySet()
                     .stream()
@@ -149,11 +167,11 @@ public class Balancer {
                                 colors.gray() + " (" + colors.lightPurple() + WEIGHT_FORMAT.format(totalSpecTypeWeight) + colors.gray() + ")" +
                                 colors.gray() + " (" + colors.darkPurple() + WEIGHT_FORMAT.format(totalSpecTypeWeight / teamBalanceInfo.totalWeight * 100) + "%" + colors.gray() + ")";
                     })
-                    .forEachOrdered(s -> sendMessage.accept("  " + s));
-            sendMessage.accept(colors.gray() + "  -----------------------");
+                    .forEachOrdered(s -> printer.sendMessage("  " + s));
+            printer.sendMessage(colors.gray() + "  -----------------------");
             List<DebuggedPlayer> players = teamBalanceInfo.players;
             for (DebuggedPlayer debuggedPlayer : players) {
-                sendMessage.accept("  " + debuggedPlayer.getInfo(colors));
+                printer.sendMessage("  " + debuggedPlayer.getInfo(colors));
             }
         });
     }
@@ -271,10 +289,35 @@ public class Balancer {
     }
 
     /**
-     * @param sendMessage the consumer to send messages to
-     * @param colors      color interface to use for coloring messages
+     * Class used as an interface to print debug messages
      */
-    record Printer(Consumer<String> sendMessage, Color colors) {
+    static final class Printer {
+        private final Consumer<String> sendMessage;
+        private final Color colors;
+        private boolean enabled = true;
+
+        /**
+         * @param sendMessage the consumer to send messages to
+         * @param colors      color interface to use for coloring messages
+         */
+        Printer(Consumer<String> sendMessage, Color colors) {
+            this.sendMessage = sendMessage;
+            this.colors = colors;
+        }
+
+        public void sendMessage(String message) {
+            if (enabled) {
+                sendMessage.accept(message);
+            }
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public Color colors() {
+            return colors;
+        }
 
     }
 

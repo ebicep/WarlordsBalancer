@@ -1,7 +1,6 @@
 package com.ebicep.warlordsbalancer;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 enum ExtraBalanceFeature {
 
@@ -24,16 +23,15 @@ enum ExtraBalanceFeature {
                     maxPlayersTeamInfo = entry.getValue();
                 }
             }
-            Consumer<String> sendMessage = printer.sendMessage();
             Color colors = printer.colors();
             int playerDifference = maxPlayers - minPlayers;
             if (playerDifference <= 1) {
-                sendMessage.accept(colors.yellow() + "Teams are even");
+                printer.sendMessage(colors.yellow() + "Teams are even");
                 return false;
             }
             boolean applied = false;
             for (int i = 0; i < playerDifference - 1; i++) {
-                if (trySwapping(minPlayersTeamInfo, maxPlayersTeamInfo, sendMessage, colors)) {
+                if (trySwapping(minPlayersTeamInfo, maxPlayersTeamInfo, printer, colors)) {
                     applied = true;
                 }
             }
@@ -43,7 +41,7 @@ enum ExtraBalanceFeature {
         private boolean trySwapping(
                 Balancer.TeamBalanceInfo minPlayersTeamInfo,
                 Balancer.TeamBalanceInfo maxPlayersTeamInfo,
-                Consumer<String> sendMessage,
+                Balancer.Printer printer,
                 Color colors
         ) {
             // check which spec type to swap
@@ -53,7 +51,7 @@ enum ExtraBalanceFeature {
                     specTypes.remove(specType);
                 }
             }
-            sendMessage.accept(colors.yellow() + "Swappable spec types: " + colors.darkAqua() + specTypes);
+            printer.sendMessage(colors.yellow() + "Swappable spec types: " + colors.darkAqua() + specTypes);
             // find any player on the team with the most players that has the spec type and would even out the weights the most
             double weightDiff = maxPlayersTeamInfo.totalWeight - minPlayersTeamInfo.totalWeight;
             Balancer.DebuggedPlayer playerToMove = null;
@@ -73,10 +71,10 @@ enum ExtraBalanceFeature {
                 }
             }
             if (playerToMove == null) {
-                sendMessage.accept(colors.darkRed() + "No player to move");
+                printer.sendMessage(colors.darkRed() + "No player to move");
                 return false;
             }
-            sendMessage.accept(colors.yellow() + "Moving " + playerToMove.player().getInfo(colors));
+            printer.sendMessage(colors.yellow() + "Moving " + playerToMove.player().getInfo(colors));
             maxPlayersTeamInfo.removePlayer(playerToMove);
             minPlayersTeamInfo.addPlayer(playerToMove);
             return true;
@@ -85,10 +83,9 @@ enum ExtraBalanceFeature {
     SWAP_SPEC_TYPES {
         @Override
         public boolean apply(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos) {
-            Consumer<String> sendMessage = printer.sendMessage();
             Color colors = printer.colors();
             if (teamBalanceInfos.keySet().size() != 2) {
-                sendMessage.accept(colors.darkRed() + "Can only swap between 2 teams (not gonna try to swap more)");
+                printer.sendMessage(colors.darkRed() + "Can only swap between 2 teams (not gonna try to swap more)");
                 return false;
             }
             Balancer.TeamBalanceInfo blueBalanceInfo = teamBalanceInfos.get(Team.BLUE);
@@ -147,7 +144,7 @@ enum ExtraBalanceFeature {
                     break;
                 }
                 previousTeamWeightDiff = newTotalWeightDiff;
-                sendMessage.accept(colors.yellow() + "Swapping " +
+                printer.sendMessage(colors.yellow() + "Swapping " +
                         colors.blue() + "BLUE" +
                         colors.gray() + "(" + bluePlayerToSwap.player().getInfo(colors) +
                         colors.gray() + ") " +
