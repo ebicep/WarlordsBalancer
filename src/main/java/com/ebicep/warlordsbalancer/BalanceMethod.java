@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.ebicep.warlordsbalancer.Balancer.format;
+
 enum BalanceMethod {
     V1 {
         @Override
@@ -93,8 +95,8 @@ enum BalanceMethod {
                                             .stream()
                                             .map(entry -> {
                                                 Team key = entry.getKey();
-                                                return key + ": " + Balancer.WEIGHT_FORMAT.format(entry.getValue()) +
-                                                        (key == team ? "->" + Balancer.WEIGHT_FORMAT.format(newTeamWeight) : "");
+                                                return key + ": " + format(entry.getValue()) +
+                                                        (key == team ? "->" + format(newTeamWeight) : "");
                                             })
                                             .collect(Collectors.joining(" | "))
                         );

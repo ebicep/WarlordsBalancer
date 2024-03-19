@@ -9,6 +9,11 @@ import java.util.function.Predicate;
 public class Balancer {
 
     public static final DecimalFormat WEIGHT_FORMAT = new DecimalFormat("#.##");
+
+    public static String format(double weight) {
+        return WEIGHT_FORMAT.format(weight);
+    }
+
     public static final double MAX_WEIGHT = 4;
     public static final double MIN_WEIGHT = .43;
     private static final List<Filter> FILTERS = List.of(
@@ -27,7 +32,7 @@ public class Balancer {
     ) {
         List<ExtraBalanceFeature> features = List.of(extraBalanceFeatures);
         balance(new Printer(System.out::println, new Color() {}),
-                1_000_000,
+                500_000,
                 22,
                 balanceMethod,
                 randomWeightMethod,
@@ -98,6 +103,13 @@ public class Balancer {
                 printer.sendMessage(colors.gray() + "--------------------------------");
             }
             totalWeightDiff += weightDiff;
+            if (teams.get(Team.BLUE).players.size() != teams.get(Team.RED).players.size()) {
+                printer.setEnabled(true);
+                printer.sendMessage(colors.red() + "!!!!!!!! Teams are not even !!!!!!!!");
+                maxWeightDiff = weightDiff;
+                mostUnbalancedTeam = teams;
+                break;
+            }
             if (weightDiff > maxWeightDiff) {
                 maxWeightDiff = weightDiff;
                 mostUnbalancedTeam = teams;
@@ -118,7 +130,7 @@ public class Balancer {
         });
     }
 
-    private static double getMaxWeightDiff(Map<Team, TeamBalanceInfo> teams) {
+    public static double getMaxWeightDiff(Map<Team, TeamBalanceInfo> teams) {
         double maxWeight = 0;
         double minWeight = Double.MAX_VALUE;
         for (TeamBalanceInfo teamBalanceInfo : teams.values()) {

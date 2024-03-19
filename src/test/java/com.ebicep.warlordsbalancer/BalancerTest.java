@@ -60,8 +60,9 @@ public class BalancerTest {
         Balancer.balance(BalanceMethod.V2_1,
                 RandomWeightMethod.RANDOM,
                 ExtraBalanceFeature.SWAP_UNEVEN_TEAMS,
-                ExtraBalanceFeature.SWAP_SPEC_TYPES,
-                ExtraBalanceFeature.SWAP_TEAM_SPEC_TYPES
+//                ExtraBalanceFeature.SWAP_SPEC_TYPES,
+//                ExtraBalanceFeature.SWAP_TEAM_SPEC_TYPES,
+                ExtraBalanceFeature.HARD_SWAP
         );
     }
 
@@ -87,7 +88,8 @@ public class BalancerTest {
                 RandomWeightMethod.NORMAL_DISTRIBUTION,
                 ExtraBalanceFeature.SWAP_UNEVEN_TEAMS,
                 ExtraBalanceFeature.SWAP_SPEC_TYPES,
-                ExtraBalanceFeature.SWAP_TEAM_SPEC_TYPES
+                ExtraBalanceFeature.SWAP_TEAM_SPEC_TYPES,
+                ExtraBalanceFeature.COMPENSATE
         );
     }
 
