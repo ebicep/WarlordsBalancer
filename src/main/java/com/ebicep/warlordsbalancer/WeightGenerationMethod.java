@@ -4,13 +4,15 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public interface WeightGenerationMethod {
 
+    double MAX_WEIGHT = 4;
+    double MIN_WEIGHT = .43;
     WeightGenerationMethod DEFAULT_RANDOM = new Random();
     WeightGenerationMethod DEFAULT_NORMAL_DISTRIBUTION = new NormalDistribution();
     WeightGenerationMethod DEFAULT_CUSTOM = new Custom();
     WeightGenerationMethod DEFAULT_CUSTOM_NORMAL_DISTRIBUTION = new CustomNormalDistribution();
 
     private static double clamp(double value) {
-        return clamp(value, Balancer.MIN_WEIGHT, Balancer.MAX_WEIGHT);
+        return clamp(value, MIN_WEIGHT, MAX_WEIGHT);
     }
 
     private static double clamp(double value, double min, double max) {
@@ -30,12 +32,12 @@ public interface WeightGenerationMethod {
     class Random implements WeightGenerationMethod {
         @Override
         public double generateRandomWeight() {
-            return ThreadLocalRandom.current().nextDouble(Balancer.MIN_WEIGHT, Balancer.MAX_WEIGHT);
+            return ThreadLocalRandom.current().nextDouble(MIN_WEIGHT, MAX_WEIGHT);
         }
     }
 
     class NormalDistribution implements WeightGenerationMethod {
-        private static final double DEFAULT_MEAN = (Balancer.MAX_WEIGHT + Balancer.MIN_WEIGHT) / 2;
+        private static final double DEFAULT_MEAN = (MAX_WEIGHT + MIN_WEIGHT) / 2;
         private static final double DEFAULT_STANDARD_DEVIATION = 1.2;
         private final double mean;
         private final double standardDeviation;

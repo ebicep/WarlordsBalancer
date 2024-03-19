@@ -9,8 +9,6 @@ import java.util.function.Predicate;
 public class Balancer {
 
     public static final DecimalFormat WEIGHT_FORMAT = new DecimalFormat("#.##");
-    public static final double MAX_WEIGHT = 4;
-    public static final double MIN_WEIGHT = .43;
     private static final List<Filter> FILTERS = List.of(
             (Filter.SpecificationFilter) () -> Specialization.DEFENDER,
             (Filter.SpecificationFilter) () -> Specialization.CRYOMANCER,
