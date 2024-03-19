@@ -280,8 +280,8 @@ enum ExtraBalanceFeature {
             Team team1 = teamArray[0];
             Team team2 = teamArray[1];
             boolean applied = false;
-            for (int i = 0; i < 5; i++) {
-                if (tryToCompensate(printer, teamBalanceInfos, team1, team2)) {
+            for (int i = 0; i < 8; i++) {
+                if (tryToCompensate(printer, teamBalanceInfos, team1, team2, i)) {
                     applied = true;
                 } else {
                     break;
@@ -290,7 +290,7 @@ enum ExtraBalanceFeature {
             return applied;
         }
 
-        private boolean tryToCompensate(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos, Team team1, Team team2) {
+        private boolean tryToCompensate(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos, Team team1, Team team2, int index) {
             Color colors = printer.colors();
             Balancer.TeamBalanceInfo teamBalanceInfo1 = teamBalanceInfos.get(team1);
             Balancer.TeamBalanceInfo teamBalanceInfo2 = teamBalanceInfos.get(team2);
@@ -366,8 +366,8 @@ enum ExtraBalanceFeature {
                     colors.lightPurple() + format(highestWeightDiff) +
                     colors.gray() + ")");
             String compensateInfo = format(maxWeightDiff) + "|" + format(highestWeightDiff);
-            highestPlayerToSwap.debuggedMessages().add(c -> colors.yellow() + "COMPENSATE SWAP " + compensateInfo + "");
-            lowestPlayerToSwap.debuggedMessages().add(c -> colors.yellow() + "COMPENSATE SWAP " + compensateInfo + "");
+            highestPlayerToSwap.debuggedMessages().add(c -> colors.yellow() + "COMPENSATE SWAP #" + (index + 1) + " " + compensateInfo + "");
+            lowestPlayerToSwap.debuggedMessages().add(c -> colors.yellow() + "COMPENSATE SWAP #" + (index + 1) + " " + compensateInfo + "");
             highestSpecTypeWeightTeam.removePlayer(highestPlayerToSwap);
             lowestSpecTypeWeightTeam.removePlayer(lowestPlayerToSwap);
             highestSpecTypeWeightTeam.addPlayer(lowestPlayerToSwap);

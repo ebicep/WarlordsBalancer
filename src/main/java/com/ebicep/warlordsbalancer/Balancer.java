@@ -27,15 +27,15 @@ public class Balancer {
 
     public static void balance(
             BalanceMethod balanceMethod,
-            RandomWeightMethod randomWeightMethod,
+            WeightGenerationMethod weightGenerationMethod,
             ExtraBalanceFeature... extraBalanceFeatures
     ) {
         List<ExtraBalanceFeature> features = List.of(extraBalanceFeatures);
         balance(new Printer(System.out::println, new Color() {}),
-                500_000,
+                50_000,
                 22,
                 balanceMethod,
-                randomWeightMethod,
+                weightGenerationMethod,
                 features.isEmpty() ? EnumSet.noneOf(ExtraBalanceFeature.class) : EnumSet.copyOf(features)
         );
     }
@@ -45,7 +45,7 @@ public class Balancer {
             int iterations,
             int playerCount,
             BalanceMethod balanceMethod,
-            RandomWeightMethod randomWeightMethod,
+            WeightGenerationMethod weightGenerationMethod,
             EnumSet<ExtraBalanceFeature> extraBalanceFeatures
     ) {
         Color colors = printer.colors;
@@ -54,7 +54,7 @@ public class Balancer {
         printer.sendMessage(colors.gray() + "Iterations: " + colors.green() + iterations);
         printer.sendMessage(colors.gray() + "Player Count: " + colors.green() + playerCount);
         printer.sendMessage(colors.gray() + "Balance Method: " + colors.green() + balanceMethod);
-        printer.sendMessage(colors.gray() + "Random Weight Method: " + colors.green() + randomWeightMethod);
+        printer.sendMessage(colors.gray() + "Random Weight Method: " + colors.green() + weightGenerationMethod);
         printer.sendMessage(colors.gray() + "Extra Balance Features: " + colors.green() + extraBalanceFeatures);
         double totalWeightDiff = 0;
         double maxWeightDiff = 0;
@@ -62,7 +62,7 @@ public class Balancer {
         for (int i = 0; i < iterations; i++) {
             Set<Player> players = new HashSet<>();
             for (int j = 0; j < playerCount; j++) {
-                players.add(new Player(Specialization.getRandomSpec(), randomWeightMethod.generateRandomWeight()));
+                players.add(new Player(Specialization.getRandomSpec(), weightGenerationMethod.generateRandomWeight()));
             }
             if (iterations == 1) {
                 // printing list of players to be balanced in order
