@@ -23,7 +23,9 @@ enum BalanceMethod {
                 for (Balancer.Player player : playerList) {
                     players.remove(player);
                     Team team;
-                    if (teams.values().stream().anyMatch(teamBalanceInfo -> teamBalanceInfo.players.size() == maxPerTeam)) {
+                    if (player.preassignedTeam() != null) {
+                        team = player.preassignedTeam();
+                    } else if (teams.values().stream().anyMatch(teamBalanceInfo -> teamBalanceInfo.players.size() == maxPerTeam)) {
                         team = teams.entrySet()
                                     .stream()
                                     .filter(entry -> entry.getValue().players.size() < maxPerTeam)
@@ -54,11 +56,16 @@ enum BalanceMethod {
                                                           .toList();
                 for (Balancer.Player player : playerList) {
                     players.remove(player);
-                    Team team = teams.entrySet()
-                                     .stream()
-                                     .min(Comparator.comparingInt(entry -> entry.getValue().players.size()))
-                                     .map(Map.Entry::getKey)
-                                     .orElse(Team.RED);
+                    Team team;
+                    if (player.preassignedTeam() != null) {
+                        team = player.preassignedTeam();
+                    } else {
+                        team = teams.entrySet()
+                                    .stream()
+                                    .min(Comparator.comparingInt(entry -> entry.getValue().players.size()))
+                                    .map(Map.Entry::getKey)
+                                    .orElse(Team.RED);
+                    }
                     int index = amountOfPlayers - players.size();
                     teams.get(team).addPlayer(new Balancer.DebuggedPlayer(player, colors -> colors.aqua() + index));
                 }
@@ -69,7 +76,7 @@ enum BalanceMethod {
         @Override
         public void balance(Set<Balancer.Player> players, List<Balancer.Filter> filters, Map<Team, Balancer.TeamBalanceInfo> teams) {
             int amountOfPlayers = players.size();
-            Team lastTeam = Team.RED;
+//            Team lastTeam = Team.RED;
             for (Balancer.Filter filter : filters) {
                 List<Balancer.Player> playerList = players.stream()
                                                           .filter(filter::test)
@@ -79,15 +86,26 @@ enum BalanceMethod {
                     Balancer.Player player = playerList.get(i);
                     players.remove(player);
                     boolean firstOfCategory = i == 0;// && filter instanceof Balancer.Filter.SpecTypeFilter;
-                    Team team = firstOfCategory ? teams.entrySet()
-                                                       .stream()
-                                                       .min(Comparator.comparingDouble(entry -> entry.getValue().totalWeight))
-                                                       .map(Map.Entry::getKey)
-                                                       .orElse(Team.BLUE) : lastTeam.next();
-                    lastTeam = team;
+                    Team team;
+                    if (player.preassignedTeam() != null) {
+                        team = player.preassignedTeam();
+                    } else if (firstOfCategory) {
+                        team = teams.entrySet()
+                                    .stream()
+                                    .min(Comparator.comparingDouble(entry -> entry.getValue().totalWeight))
+                                    .map(Map.Entry::getKey)
+                                    .orElse(Team.BLUE);
+                    } else {
+                        team = teams.entrySet()
+                                    .stream()
+                                    .min(Comparator.comparingDouble(entry -> entry.getValue().players.size()))
+                                    .map(Map.Entry::getKey)
+                                    .orElse(Team.BLUE);
+                    }
+//                    lastTeam = team;
                     int index = amountOfPlayers - players.size();
                     Balancer.DebuggedPlayer debuggedPlayer = new Balancer.DebuggedPlayer(player, colors -> colors.aqua() + index);
-                    if (firstOfCategory) {
+                    if (player.preassignedTeam() == null && firstOfCategory) {
                         Map<Team, Double> teamsWeights = teams.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().totalWeight));
                         double newTeamWeight = teamsWeights.get(team) + player.weight();
                         debuggedPlayer.debuggedMessages().add(colors -> colors.darkPurple() +

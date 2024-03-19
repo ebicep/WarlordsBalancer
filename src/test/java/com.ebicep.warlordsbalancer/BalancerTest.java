@@ -6,6 +6,17 @@ import org.junit.Test;
 public class BalancerTest {
 
     @Test
+    public void testBalancer() {
+        Balancer.balance(BalanceMethod.V2_1,
+                WeightGenerationMethod.CUSTOM_NORMAL_DISTRIBUTION,
+                ExtraBalanceFeature.SWAP_UNEVEN_TEAMS,
+                ExtraBalanceFeature.SWAP_SPEC_TYPES,
+                ExtraBalanceFeature.SWAP_TEAM_SPEC_TYPES,
+                ExtraBalanceFeature.HARD_SWAP
+        );
+    }
+
+    @Test
     public void v1Random() {
         Balancer.balance(BalanceMethod.V1, WeightGenerationMethod.RANDOM);
     }
@@ -58,14 +69,13 @@ public class BalancerTest {
     @Test
     public void v2_1RandomExtra() {
         Balancer.balance(BalanceMethod.V2_1,
-                WeightGenerationMethod.NORMAL_DISTRIBUTION,
+                WeightGenerationMethod.RANDOM,
                 ExtraBalanceFeature.SWAP_UNEVEN_TEAMS,
                 ExtraBalanceFeature.SWAP_SPEC_TYPES,
                 ExtraBalanceFeature.SWAP_TEAM_SPEC_TYPES,
-                ExtraBalanceFeature.COMPENSATE
+                ExtraBalanceFeature.HARD_SWAP
         );
     }
-
 
     @Test
     public void v2_1NormalDistribution() {

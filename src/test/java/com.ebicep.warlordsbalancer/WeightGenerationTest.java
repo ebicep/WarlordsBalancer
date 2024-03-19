@@ -12,12 +12,21 @@ public class WeightGenerationTest {
         printStats(WeightGenerationMethod.RANDOM);
         printStats(WeightGenerationMethod.NORMAL_DISTRIBUTION);
         printStats(WeightGenerationMethod.CUSTOM);
+        printStats(WeightGenerationMethod.CUSTOM_NORMAL_DISTRIBUTION);
     }
 
     @Test
     public void testRandomWeight() {
         for (int i = 0; i < 100; i++) {
             double randomWeight = WeightGenerationMethod.NORMAL_DISTRIBUTION.generateRandomWeight();
+            System.out.println(randomWeight);
+        }
+    }
+
+    @Test
+    public void testCustom() {
+        for (int i = 0; i < 100; i++) {
+            double randomWeight = WeightGenerationMethod.CUSTOM.generateRandomWeight();
             System.out.println(randomWeight);
         }
     }

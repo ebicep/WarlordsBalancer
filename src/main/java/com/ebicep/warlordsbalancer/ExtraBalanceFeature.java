@@ -56,10 +56,20 @@ enum ExtraBalanceFeature {
         ) {
             // check which spec type to swap
             EnumSet<SpecType> specTypes = EnumSet.allOf(SpecType.class);
+            EnumSet<SpecType> backupSpecTypes = EnumSet.noneOf(SpecType.class);
+            Map<SpecType, List<Balancer.DebuggedPlayer>> playersMatchingSpecType = new HashMap<>();
             for (SpecType specType : SpecType.VALUES) {
+                List<Balancer.DebuggedPlayer> playersMatching = maxPlayersTeamInfo.getPlayersMatching(specType);
+                playersMatchingSpecType.put(specType, playersMatching);
                 if (minPlayersTeamInfo.specTypeCount.getOrDefault(specType, 0).equals(maxPlayersTeamInfo.specTypeCount.getOrDefault(specType, 0))) {
                     specTypes.remove(specType);
+                    if (!playersMatching.isEmpty()) {
+                        backupSpecTypes.add(specType);
+                    }
                 }
+            }
+            if (specTypes.stream().allMatch(specType -> playersMatchingSpecType.get(specType).isEmpty())) {
+                specTypes.addAll(backupSpecTypes);
             }
             printer.sendMessage(colors.yellow() + "Swappable spec types: " + colors.darkAqua() + specTypes);
             // find any player on the team with the most players that has the spec type and would even out the weights the most
@@ -67,7 +77,7 @@ enum ExtraBalanceFeature {
             Balancer.DebuggedPlayer playerToMove = null;
             double lowestWeightDiff = Double.MAX_VALUE;
             for (SpecType specType : specTypes) {
-                for (Balancer.DebuggedPlayer player : maxPlayersTeamInfo.getPlayersMatching(specType)) {
+                for (Balancer.DebuggedPlayer player : playersMatchingSpecType.get(specType)) {
                     Balancer.Player p = player.player();
                     double newLowestWeightDiff = Math.abs(weightDiff - p.weight() * 2);
                     if (newLowestWeightDiff < lowestWeightDiff) {
@@ -98,9 +108,6 @@ enum ExtraBalanceFeature {
     SWAP_SPEC_TYPES {
         @Override
         public boolean apply(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos) {
-            if (teamBalanceInfos.get(Team.BLUE).players.size() != 11) {
-                System.out.println("????");
-            }
             Color colors = printer.colors();
             Set<Team> teams = teamBalanceInfos.keySet();
             if (teams.size() < 2) {
@@ -185,9 +192,6 @@ enum ExtraBalanceFeature {
     SWAP_TEAM_SPEC_TYPES {
         @Override
         public boolean apply(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos) {
-            if (teamBalanceInfos.get(Team.BLUE).players.size() != 11) {
-                System.out.println("??????");
-            }
             Color colors = printer.colors();
             Set<Team> teams = teamBalanceInfos.keySet();
             if (teams.size() < 2) {

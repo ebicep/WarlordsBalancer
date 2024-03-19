@@ -18,12 +18,25 @@ enum WeightGenerationMethod {
     CUSTOM {
         @Override
         public double generateRandomWeight() {
-            int winsLast100 = ThreadLocalRandom.current().nextInt(0, 101);
-            int winsLast10 = (int) (winsLast100 * .1);
-            double last100WinLoss = winsLast100 / (100.0 - winsLast100);
-            double last10WinLoss = winsLast10 / 10.0;
-//            System.out.println(last100WinLoss + " - " + last10WinLoss);
-            return clamp(last100WinLoss * (1 + Math.sqrt(last10WinLoss)));
+            ThreadLocalRandom random = ThreadLocalRandom.current();
+            int last100Wins = random.nextInt(0, 101);
+            int last10Wins = clamp(random.nextInt(0, 11), 0, last100Wins);
+            double weight = clamp(last100Wins / (100.0 - last100Wins));
+            double last10WinLoss = last10Wins / 10.0;
+//            System.out.println(last100Wins + " - " + weight + " - " + last10WinLoss);
+            return weight * (1 + Math.sqrt(last10WinLoss));
+        }
+    },
+    CUSTOM_NORMAL_DISTRIBUTION {
+        @Override
+        public double generateRandomWeight() {
+            ThreadLocalRandom random = ThreadLocalRandom.current();
+            int last100Wins = (int) clamp(random.nextGaussian() * 25 + 50, 0, 101);
+            int last10Wins = clamp(random.nextInt(0, 11), 0, last100Wins);
+            double weight = clamp(last100Wins / (100.0 - last100Wins));
+            double last10WinLoss = last10Wins / 10.0;
+//            System.out.println(last100Wins + " - " + weight + " - " + last10WinLoss);
+            return weight * (1 + Math.sqrt(last10WinLoss));
         }
     };
 

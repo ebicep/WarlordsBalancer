@@ -9,11 +9,6 @@ import java.util.function.Predicate;
 public class Balancer {
 
     public static final DecimalFormat WEIGHT_FORMAT = new DecimalFormat("#.##");
-
-    public static String format(double weight) {
-        return WEIGHT_FORMAT.format(weight);
-    }
-
     public static final double MAX_WEIGHT = 4;
     public static final double MIN_WEIGHT = .43;
     private static final List<Filter> FILTERS = List.of(
@@ -24,6 +19,9 @@ public class Balancer {
             (Filter.SpecTypeFilter) () -> SpecType.HEALER
     );
 
+    public static String format(double weight) {
+        return WEIGHT_FORMAT.format(weight);
+    }
 
     public static void balance(
             BalanceMethod balanceMethod,
@@ -33,7 +31,7 @@ public class Balancer {
         List<ExtraBalanceFeature> features = List.of(extraBalanceFeatures);
         balance(new Printer(System.out::println, new Color() {}),
                 50_000,
-                22,
+                60,
                 balanceMethod,
                 weightGenerationMethod,
                 features.isEmpty() ? EnumSet.noneOf(ExtraBalanceFeature.class) : EnumSet.copyOf(features)
@@ -58,11 +56,12 @@ public class Balancer {
         printer.sendMessage(colors.gray() + "Extra Balance Features: " + colors.green() + extraBalanceFeatures);
         double totalWeightDiff = 0;
         double maxWeightDiff = 0;
+        Map<Integer, Integer> weightDiffCount = new HashMap<>();
         Map<Team, TeamBalanceInfo> mostUnbalancedTeam = new HashMap<>();
         for (int i = 0; i < iterations; i++) {
             Set<Player> players = new HashSet<>();
             for (int j = 0; j < playerCount; j++) {
-                players.add(new Player(Specialization.getRandomSpec(), weightGenerationMethod.generateRandomWeight()));
+                players.add(new Player(Specialization.getRandomSpec(), weightGenerationMethod.generateRandomWeight(), j < 10 ? Team.BLUE : null));
             }
             if (iterations == 1) {
                 // printing list of players to be balanced in order
@@ -93,6 +92,7 @@ public class Balancer {
                 printer.sendMessage(colors.yellow() + "Extra Balance Feature: " + extraBalanceFeature);
                 boolean applied = extraBalanceFeature.apply(printer, teams);
                 if (!applied) {
+                    weightDiff = getMaxWeightDiff(teams);
                     printer.sendMessage(colors.yellow() + "No changes applied");
                     printer.sendMessage(colors.gray() + "--------------------------------");
                     continue;
@@ -103,13 +103,14 @@ public class Balancer {
                 printer.sendMessage(colors.gray() + "--------------------------------");
             }
             totalWeightDiff += weightDiff;
-            if (teams.get(Team.BLUE).players.size() != teams.get(Team.RED).players.size()) {
-                printer.setEnabled(true);
-                printer.sendMessage(colors.red() + "!!!!!!!! Teams are not even !!!!!!!!");
-                maxWeightDiff = weightDiff;
-                mostUnbalancedTeam = teams;
-                break;
-            }
+//            if (teams.get(Team.BLUE).players.size() != teams.get(Team.RED).players.size()) {
+//                printer.setEnabled(true);
+//                printer.sendMessage(colors.red() + "!!!!!!!! Teams are not even !!!!!!!!");
+//                maxWeightDiff = weightDiff;
+//                mostUnbalancedTeam = teams;
+//                break;
+//            }
+            weightDiffCount.merge((int) weightDiff, 1, Integer::sum);
             if (weightDiff > maxWeightDiff) {
                 maxWeightDiff = weightDiff;
                 mostUnbalancedTeam = teams;
@@ -128,16 +129,10 @@ public class Balancer {
                 printer.sendMessage("new Player(Specialization." + player.player.spec + ", " + WEIGHT_FORMAT.format(player.player.weight) + ")");
             }
         });
-    }
 
-    public static double getMaxWeightDiff(Map<Team, TeamBalanceInfo> teams) {
-        double maxWeight = 0;
-        double minWeight = Double.MAX_VALUE;
-        for (TeamBalanceInfo teamBalanceInfo : teams.values()) {
-            maxWeight = Math.max(maxWeight, teamBalanceInfo.totalWeight);
-            minWeight = Math.min(minWeight, teamBalanceInfo.totalWeight);
-        }
-        return maxWeight - minWeight;
+        weightDiffCount.forEach((weightDiff, count) -> {
+            printer.sendMessage(weightDiff + " - " + count + " (" + WEIGHT_FORMAT.format(count / (double) iterations * 100) + "%)");
+        });
     }
 
     private static Map<Team, TeamBalanceInfo> getBalancedTeams(Set<Player> players, BalanceMethod balanceMethod) {
@@ -176,6 +171,16 @@ public class Balancer {
                 printer.sendMessage("  " + debuggedPlayer.getInfo(colors));
             }
         });
+    }
+
+    public static double getMaxWeightDiff(Map<Team, TeamBalanceInfo> teams) {
+        double maxWeight = 0;
+        double minWeight = Double.MAX_VALUE;
+        for (TeamBalanceInfo teamBalanceInfo : teams.values()) {
+            maxWeight = Math.max(maxWeight, teamBalanceInfo.totalWeight);
+            minWeight = Math.min(minWeight, teamBalanceInfo.totalWeight);
+        }
+        return maxWeight - minWeight;
     }
 
 
@@ -239,14 +244,15 @@ public class Balancer {
                           .sum();
         }
 
-        public List<DebuggedPlayer> getPlayersMatching(Predicate<Player> filter) {
-            return players.stream()
-                          .filter(debuggedPlayer -> filter.test(debuggedPlayer.player))
-                          .toList();
-        }
-
         public List<DebuggedPlayer> getPlayersMatching(SpecType specType) {
             return getPlayersMatching(player -> player.spec.specType == specType);
+        }
+
+        public List<DebuggedPlayer> getPlayersMatching(Predicate<Player> filter) {
+            return players.stream()
+                          .filter(debuggedPlayer -> debuggedPlayer.player.preassignedTeam == null)
+                          .filter(debuggedPlayer -> filter.test(debuggedPlayer.player))
+                          .toList();
         }
     }
 
@@ -259,6 +265,9 @@ public class Balancer {
     record DebuggedPlayer(Player player, List<DebuggedMessage> debuggedMessages) {
         public DebuggedPlayer(Player player, DebuggedMessage... messages) {
             this(player, new ArrayList<>(List.of(messages)));
+            if (player.preassignedTeam() != null) {
+                debuggedMessages.add(colors -> colors.gold() + "PREASSIGNED");
+            }
         }
 
         public String getInfo(Color colors) {
@@ -277,10 +286,14 @@ public class Balancer {
      * @param spec   the specialization of the player
      * @param weight the weight of the player
      */
-    record Player(UUID uuid, Specialization spec, double weight) {
+    record Player(UUID uuid, Specialization spec, double weight, Team preassignedTeam) {
+
+        public Player(Specialization spec, double weight, Team preassignedTeam) {
+            this(UUID.randomUUID(), spec, weight, preassignedTeam);
+        }
 
         public Player(Specialization spec, double weight) {
-            this(UUID.randomUUID(), spec, weight);
+            this(UUID.randomUUID(), spec, weight, null);
         }
 
         public String getInfo(Color colors) {
@@ -292,7 +305,7 @@ public class Balancer {
             return "Player{" +
                     "" + spec +
                     ", " + WEIGHT_FORMAT.format(weight) +
-                    '}';
+                    '}' ;
         }
     }
 
