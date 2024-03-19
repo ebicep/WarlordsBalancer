@@ -9,6 +9,9 @@ import java.util.stream.Collectors;
 import static com.ebicep.warlordsbalancer.Balancer.format;
 
 enum BalanceMethod {
+    /**
+     *
+     */
     V1 {
         @Override
         public void balance(Set<Balancer.Player> players, List<Balancer.Filter> filters, Map<Team, Balancer.TeamBalanceInfo> teams) {

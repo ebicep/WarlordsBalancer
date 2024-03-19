@@ -9,7 +9,7 @@ public class SetTest {
 
     @Test
     public void setTest() {
-        WeightGenerationMethod weightGenerationMethod = WeightGenerationMethod.NORMAL_DISTRIBUTION;
+        WeightGenerationMethod weightGenerationMethod = WeightGenerationMethod.DEFAULT_NORMAL_DISTRIBUTION;
         for (int i = 0; i < 100; i++) {
             Set<Balancer.Player> players = new HashSet<>();
             for (int j = 0; j < 22; j++) {

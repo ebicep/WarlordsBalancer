@@ -2,46 +2,12 @@ package com.ebicep.warlordsbalancer;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-enum WeightGenerationMethod {
-    RANDOM {
-        @Override
-        public double generateRandomWeight() {
-            return ThreadLocalRandom.current().nextDouble(Balancer.MIN_WEIGHT, Balancer.MAX_WEIGHT);
-        }
-    },
-    NORMAL_DISTRIBUTION {
-        @Override
-        public double generateRandomWeight() {
-            return clamp(ThreadLocalRandom.current().nextGaussian() * STANDARD_DEVIATION + MEAN);
-        }
-    },
-    CUSTOM {
-        @Override
-        public double generateRandomWeight() {
-            ThreadLocalRandom random = ThreadLocalRandom.current();
-            int last100Wins = random.nextInt(0, 101);
-            int last10Wins = clamp(random.nextInt(0, 11), 0, last100Wins);
-            double weight = clamp(last100Wins / (100.0 - last100Wins));
-            double last10WinLoss = last10Wins / 10.0;
-//            System.out.println(last100Wins + " - " + weight + " - " + last10WinLoss);
-            return weight * (1 + Math.sqrt(last10WinLoss));
-        }
-    },
-    CUSTOM_NORMAL_DISTRIBUTION {
-        @Override
-        public double generateRandomWeight() {
-            ThreadLocalRandom random = ThreadLocalRandom.current();
-            int last100Wins = (int) clamp(random.nextGaussian() * 25 + 50, 0, 101);
-            int last10Wins = clamp(random.nextInt(0, 11), 0, last100Wins);
-            double weight = clamp(last100Wins / (100.0 - last100Wins));
-            double last10WinLoss = last10Wins / 10.0;
-//            System.out.println(last100Wins + " - " + weight + " - " + last10WinLoss);
-            return weight * (1 + Math.sqrt(last10WinLoss));
-        }
-    };
+public interface WeightGenerationMethod {
 
-    private static final double MEAN = (Balancer.MAX_WEIGHT + Balancer.MIN_WEIGHT) / 2;
-    private static final double STANDARD_DEVIATION = 1.2;
+    WeightGenerationMethod DEFAULT_RANDOM = new Random();
+    WeightGenerationMethod DEFAULT_NORMAL_DISTRIBUTION = new NormalDistribution();
+    WeightGenerationMethod DEFAULT_CUSTOM = new Custom();
+    WeightGenerationMethod DEFAULT_CUSTOM_NORMAL_DISTRIBUTION = new CustomNormalDistribution();
 
     private static double clamp(double value) {
         return clamp(value, Balancer.MIN_WEIGHT, Balancer.MAX_WEIGHT);
@@ -59,5 +25,73 @@ enum WeightGenerationMethod {
         return min + (max - min) * ratio;
     }
 
-    public abstract double generateRandomWeight();
+    double generateRandomWeight();
+
+    class Random implements WeightGenerationMethod {
+        @Override
+        public double generateRandomWeight() {
+            return ThreadLocalRandom.current().nextDouble(Balancer.MIN_WEIGHT, Balancer.MAX_WEIGHT);
+        }
+    }
+
+    class NormalDistribution implements WeightGenerationMethod {
+        private static final double DEFAULT_MEAN = (Balancer.MAX_WEIGHT + Balancer.MIN_WEIGHT) / 2;
+        private static final double DEFAULT_STANDARD_DEVIATION = 1.2;
+        private final double mean;
+        private final double standardDeviation;
+
+        public NormalDistribution() {
+            this(DEFAULT_MEAN, DEFAULT_STANDARD_DEVIATION);
+        }
+
+        public NormalDistribution(double mean, double standardDeviation) {
+            this.mean = mean;
+            this.standardDeviation = standardDeviation;
+        }
+
+        @Override
+        public double generateRandomWeight() {
+            return clamp(ThreadLocalRandom.current().nextGaussian() * standardDeviation + mean);
+        }
+    }
+
+    class Custom implements WeightGenerationMethod {
+        @Override
+        public double generateRandomWeight() {
+            ThreadLocalRandom random = ThreadLocalRandom.current();
+            int last100Wins = random.nextInt(0, 101);
+            int last10Wins = clamp(random.nextInt(0, 11), 0, last100Wins);
+            double weight = clamp(last100Wins / (100.0 - last100Wins));
+            double last10WinLoss = last10Wins / 10.0;
+//            System.out.println(last100Wins + " - " + weight + " - " + last10WinLoss);
+            return weight * (1 + Math.sqrt(last10WinLoss));
+        }
+    }
+
+    class CustomNormalDistribution implements WeightGenerationMethod {
+        private static final double DEFAULT_MEAN = 50; // for generating last 100 wins
+        private static final double DEFAULT_STANDARD_DEVIATION = 25; // for generating last 100 wins
+        private final double mean;
+        private final double standardDeviation;
+
+        public CustomNormalDistribution() {
+            this(DEFAULT_MEAN, DEFAULT_STANDARD_DEVIATION);
+        }
+
+        public CustomNormalDistribution(double mean, double standardDeviation) {
+            this.mean = mean;
+            this.standardDeviation = standardDeviation;
+        }
+
+        @Override
+        public double generateRandomWeight() {
+            ThreadLocalRandom random = ThreadLocalRandom.current();
+            int last100Wins = (int) clamp(random.nextGaussian() * standardDeviation + mean, 0, 101);
+            int last10Wins = clamp(random.nextInt(0, 11), 0, last100Wins);
+            double weight = clamp(last100Wins / (100.0 - last100Wins));
+            double last10WinLoss = last10Wins / 10.0;
+//            System.out.println(last100Wins + " - " + weight + " - " + last10WinLoss);
+            return weight * (1 + Math.sqrt(last10WinLoss));
+        }
+    }
 }
