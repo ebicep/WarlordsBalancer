@@ -1,4 +1,4 @@
-# Running Parameters
+# Balancing Parameters
 ## 1. Number of Iterations
    - If the iterations is more than 1 then only the worst possible team will be printed + no extra balancing debug.
    - The average and max weight difference will be printed at the end.
