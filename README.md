@@ -59,8 +59,8 @@
             - 7-1 = 6
             - BLUE = 44 >> 25 + 10 + 1 + 5 + 3
             - RED = 46 >> 20 + 10 + 6.5 + 2.5 + 7
-      - Debug: (COMPENSATE SWAP #[INDEX] >> [Highest Team] >> [Old Team 1 Weight]|[Old Team 2 Weight] >> [New Team 1 Weight]|[NEw Team 2 Weight] >> [Max Weight Diff]|[Highest Weight Diff])
+      - Debug: (COMPENSATE SWAP #[INDEX] >> [Highest Team] >> [Old Team 1 Weight]|[Old Team 2 Weight] >> [New Team 1 Weight]|[New Team 2 Weight] >> [Max Weight Diff]|[Highest Weight Diff])
    - **Hard Swap** - Finds best swap between to players with matching spec types that would even out the teams weights
       - Essentially the same as Compensate but swapping all spec types.
-      - Debug: (HARD SWAP #[INDEX] >> [Highest Team] >> [Old Team 1 Weight]|[Old Team 2 Weight] >> [New Team 1 Weight]|[NEw Team 2 Weight] >> [Max Weight Diff]|[Highest Weight Diff])
+      - Debug: (HARD SWAP #[INDEX] >> [Highest Team] >> [Old Team 1 Weight]|[Old Team 2 Weight] >> [New Team 1 Weight]|[New Team 2 Weight] >> [Max Weight Diff]|[Highest Weight Diff])
      
