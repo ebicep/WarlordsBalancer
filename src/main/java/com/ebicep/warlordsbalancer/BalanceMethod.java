@@ -8,11 +8,15 @@ import java.util.stream.Collectors;
 
 import static com.ebicep.warlordsbalancer.Balancer.format;
 
-enum BalanceMethod {
-    /**
-     *
-     */
-    V1 {
+public interface BalanceMethod {
+
+    BalanceMethod V1 = new V1();
+    BalanceMethod V2 = new V2();
+    BalanceMethod V2_1 = new V2_1();
+
+    void balance(Set<Balancer.Player> players, List<Balancer.Filter> filters, Map<Team, Balancer.TeamBalanceInfo> teams);
+
+    class V1 implements BalanceMethod {
         @Override
         public void balance(Set<Balancer.Player> players, List<Balancer.Filter> filters, Map<Team, Balancer.TeamBalanceInfo> teams) {
             int amountOfPlayers = players.size();
@@ -46,9 +50,9 @@ enum BalanceMethod {
                 }
             }
         }
+    }
 
-    },
-    V2 {
+    class V2 implements BalanceMethod {
         @Override
         public void balance(Set<Balancer.Player> players, List<Balancer.Filter> filters, Map<Team, Balancer.TeamBalanceInfo> teams) {
             int amountOfPlayers = players.size();
@@ -74,8 +78,9 @@ enum BalanceMethod {
                 }
             }
         }
-    },
-    V2_1 {
+    }
+
+    class V2_1 implements BalanceMethod {
         @Override
         public void balance(Set<Balancer.Player> players, List<Balancer.Filter> filters, Map<Team, Balancer.TeamBalanceInfo> teams) {
             int amountOfPlayers = players.size();
@@ -127,9 +132,6 @@ enum BalanceMethod {
             }
 
         }
-    },
+    }
 
-    ;
-
-    public abstract void balance(Set<Balancer.Player> players, List<Balancer.Filter> filters, Map<Team, Balancer.TeamBalanceInfo> teams);
 }
