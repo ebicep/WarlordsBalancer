@@ -7,14 +7,14 @@
    - **Filters** - Filters to apply on the group of players to be balanced.
       - Supply a list of filters to iterate through to pass into the balancing method. (This can leave out players so ensure the list of filters accounts for all players)
       - Default List (Simplified): isDefender, isCryomancer, isTank, isDamage, isHealer
-   - **Methods** - Iterates through each filter + their set of player sorted by weight and picks which team a player should go to.
+   - [**Methods**](https://github.com/ebicep/WarlordsBalancer/blob/master/src/main/java/com/ebicep/warlordsbalancer/BalanceMethod.java) - Iterates through each filter + their set of player sorted by weight and picks which team a player should go to.
       - **V1** - Places the next player onto the team with the lowest weight.
          - Debug: (Index Added)
       - **V2** - Places the next player in an alternating fashion.
          - Debug: (Index Added)
       - **V2.1** - Same as V2 but during a transition to a new filter, the alternating series begins at the team with the lowest weight.
          - Debug: (Index Added) ([Team]:[Team's Weight]->[Team's Weight after being added, if added to])
-## 4. Weight Generation Method (Min: 0.43, Max: 4)
+## [4. Weight Generation Method](https://github.com/ebicep/WarlordsBalancer/blob/master/src/main/java/com/ebicep/warlordsbalancer/WeightGenerationMethod.java) (Min: 0.43, Max: 4)
    - **Random** - Randomly generates a weight between min and max.
    - **Normal Distribution** - Randomly generates a normally distributed weight using supplied mean and standard deviation.
      - Default Mean = (Max - Min) / 2
@@ -29,7 +29,7 @@
          - Default Mean = 50
          - Default Standard Deviation = 25
        - Clamped between min/max
-## 5. Extra Balance Features
+## [5. Extra Balance Features](https://github.com/ebicep/WarlordsBalancer/blob/master/src/main/java/com/ebicep/warlordsbalancer/ExtraBalanceFeature.java)
    - **Swap Uneven Teams** - Swaps players between the two teams to even out the player count.
       - Only tries to swap players that have a spec type whose count isnt even between the two teams. (Ignored if need be)
       - Only tries to swap player which would even out the weights the most.
@@ -66,6 +66,6 @@
    - **Hard Swap** - Finds best swap between to players with matching spec types that would even out the teams weights
       - Essentially the same as Compensate but swapping all spec types.
       - Debug: (HARD SWAP #[INDEX] >> [Highest Team] >> [Old Team 1 Weight]|[Old Team 2 Weight] >> [New Team 1 Weight]|[New Team 2 Weight] >> [Max Weight Diff]|[Highest Weight Diff])
-# Notes
-   - "Debug:" Refers to the text next to each player indicating what action was taken upon them during balacing.
+> [!NOTE]
+> "Debug:" Refers to the text next to each player indicating what action was taken upon them during balacing.
 
