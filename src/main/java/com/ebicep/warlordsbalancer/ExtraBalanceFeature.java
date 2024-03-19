@@ -326,6 +326,16 @@ public interface ExtraBalanceFeature {
      */
     class Compensate implements ExtraBalanceFeatureTwoTeams {
 
+        private final double bonus;
+
+        public Compensate() {
+            this(1);
+        }
+
+        public Compensate(int bonus) {
+            this.bonus = bonus;
+        }
+
         @Override
         public boolean apply(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos) {
             if (Balancer.getMaxWeightDiff(teamBalanceInfos) <= 1) {
@@ -374,7 +384,7 @@ public interface ExtraBalanceFeature {
             // find a player on higher spec type weighted team to swap with another player on the lower weighted team who is lower weight and would add up to x
             EnumSet<SpecType> otherSpecTypes = EnumSet.allOf(SpecType.class);
             otherSpecTypes.remove(specType);
-            double maxWeightDiff = Math.abs(team1Weight - team2Weight) / 2 + 1; // x/2, +1 adjustable to allow for closer swaps
+            double maxWeightDiff = Math.abs(team1Weight - team2Weight) / 2 + bonus; // x/2 + BONUS adjustable to allow for closer swaps
             printer.sendMessage(colors.yellow() + "Max compensate weight diff: " + colors.lightPurple() + format(maxWeightDiff));
             double highestWeightDiff = Double.MIN_VALUE;
             Balancer.DebuggedPlayer highestPlayerToSwap = null;
