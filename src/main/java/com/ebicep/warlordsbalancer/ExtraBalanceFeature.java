@@ -36,7 +36,7 @@ enum ExtraBalanceFeature {
                 return false;
             }
             boolean applied = false;
-            for (int i = 0; i < playerDifference - 1; i++) {
+            for (int i = 0; i < playerDifference / 2; i++) {
                 if (trySwapping(minPlayersTeamInfo, maxPlayersTeamInfo, printer, colors)) {
                     applied = true;
                 }
