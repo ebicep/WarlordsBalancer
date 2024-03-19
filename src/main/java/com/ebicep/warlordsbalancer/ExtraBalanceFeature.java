@@ -6,7 +6,84 @@ import java.util.*;
 
 import static com.ebicep.warlordsbalancer.Balancer.format;
 
-enum ExtraBalanceFeature {
+public interface ExtraBalanceFeature {
+
+    ExtraBalanceFeature SWAP_UNEVEN_TEAMS = new SwapUnevenTeams();
+    ExtraBalanceFeature SWAP_SPEC_TYPES = new SwapSpecTypes();
+    ExtraBalanceFeature SWAP_TEAM_SPEC_TYPES = new SwapTeamSpecTypes();
+    ExtraBalanceFeature COMPENSATE = new Compensate();
+    ExtraBalanceFeature HARD_SWAP = new HardSwap();
+
+    @Nullable
+    private static ExtraBalanceFeature.SpecTypeWeightWrapper getSpecTypeHighestWeightDiff(
+            Balancer.Printer printer,
+            Color colors,
+            Balancer.TeamBalanceInfo teamBalanceInfo1,
+            Balancer.TeamBalanceInfo teamBalanceInfo2
+    ) {
+        if (teamBalanceInfo1 == null || teamBalanceInfo2 == null) {
+            printer.sendMessage(colors.darkRed() + "One of the teams is null");
+            return null;
+        }
+        Map<SpecType, Double> specTypeWeightDiff = new HashMap<>();
+        for (SpecType value : SpecType.VALUES) {
+            double weight1 = teamBalanceInfo1.getSpecTypeWeight(value);
+            double weight2 = teamBalanceInfo2.getSpecTypeWeight(value);
+            specTypeWeightDiff.put(value, Math.abs(weight1 - weight2));
+        }
+        printer.sendMessage(colors.gray() + "-----------");
+        specTypeWeightDiff.forEach((specType, diff) -> printer.sendMessage(colors.yellow() + specType + " Weight Diff: " + colors.lightPurple() + format(diff)));
+        printer.sendMessage(colors.gray() + "-----------");
+        // get the spec type with the most difference in weight
+        SpecType specType = null;
+        double highestWeightDiff = 0;
+        for (Map.Entry<SpecType, Double> entry : specTypeWeightDiff.entrySet()) {
+            if (entry.getValue() > highestWeightDiff) {
+                highestWeightDiff = entry.getValue();
+                specType = entry.getKey();
+            }
+        }
+        return new SpecTypeWeightWrapper(specType, highestWeightDiff);
+    }
+
+    /**
+     * @param printer          the printer to send messages to
+     * @param teamBalanceInfos the team balance infos
+     * @return true if the feature was applied
+     */
+    boolean apply(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos);
+
+    /**
+     * <p>Applies the feature to the two teams for a given amount of iterations until #applyTwoTeams returns false.</p>
+     */
+    interface ExtraBalanceFeatureTwoTeams extends ExtraBalanceFeature {
+
+        @Override
+        default boolean apply(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos) {
+            Set<Team> teams = teamBalanceInfos.keySet();
+            if (teams.size() < 2) {
+                printer.sendMessage(printer.colors().darkRed() + "Not 2 teams");
+                return false;
+            }
+            Team[] teamArray = teams.toArray(new Team[0]);
+            Team team1 = teamArray[0];
+            Team team2 = teamArray[1];
+            boolean applied = false;
+            for (int i = 0; i < getIterations(); i++) {
+                if (applyTwoTeams(printer, teamBalanceInfos, team1, team2, i)) {
+                    Balancer.printBalanceInfo(printer, teamBalanceInfos);
+                    applied = true;
+                } else {
+                    break;
+                }
+            }
+            return applied;
+        }
+
+        boolean applyTwoTeams(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos, Team team1, Team team2, int index);
+
+        int getIterations();
+    }
 
     /**
      * <p>Swaps players between the two teams to even out the player count.</p>
@@ -14,7 +91,7 @@ enum ExtraBalanceFeature {
      * <p>- Only tries to swap player which would even out the weights the most</p>
      * <p>- Players swapped indicated by "MOVED" </p>
      */
-    SWAP_UNEVEN_TEAMS {
+    class SwapUnevenTeams implements ExtraBalanceFeature {
         @Override
         public boolean apply(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos) {
             // check if there are any teams with at least 2 more players than the other team
@@ -96,7 +173,8 @@ enum ExtraBalanceFeature {
             minPlayersTeamInfo.addPlayer(playerToMove);
             return true;
         }
-    },
+    }
+
     /**
      * <p>Swaps players between the two teams to even out the spec type weights.</p>
      * <p>- First gets the spec type with the most difference in weight.</p>
@@ -105,31 +183,15 @@ enum ExtraBalanceFeature {
      * <p>- Players swapped indicated by "SWAPPED".</p>
      * <p>- This repeats 5 times or until no more swaps can be made.</p>
      */
-    SWAP_SPEC_TYPES {
+    class SwapSpecTypes implements ExtraBalanceFeatureTwoTeams {
+
         @Override
-        public boolean apply(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos) {
-            Color colors = printer.colors();
-            Set<Team> teams = teamBalanceInfos.keySet();
-            if (teams.size() < 2) {
-                printer.sendMessage(colors.darkRed() + "Not 2 teams");
-                return false;
-            }
-            Team[] teamArray = teams.toArray(new Team[0]);
-            Team team1 = teamArray[0];
-            Team team2 = teamArray[1];
-            boolean applied = false;
-            for (int i = 0; i < 5; i++) {
-                if (trySwapTeams(printer, teamBalanceInfos, team1, team2, i)) {
-                    Balancer.printBalanceInfo(printer, teamBalanceInfos);
-                    applied = true;
-                } else {
-                    break;
-                }
-            }
-            return applied;
+        public int getIterations() {
+            return 5;
         }
 
-        private boolean trySwapTeams(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos, Team team1, Team team2, int index) {
+        @Override
+        public boolean applyTwoTeams(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos, Team team1, Team team2, int index) {
             Color colors = printer.colors();
             // find teams with equal amount of a spec type with the most difference in weight
             Balancer.TeamBalanceInfo teamBalanceInfo1 = teamBalanceInfos.get(team1);
@@ -179,8 +241,8 @@ enum ExtraBalanceFeature {
             teamBalanceInfo2.addPlayer(team1Swap);
             return true;
         }
+    }
 
-    },
     /**
      * Swaps groups of players with matching spec types between the two teams to even out the total weight between the teams.
      * <p>- First gets the spec type with the most difference in weight.</p>
@@ -189,22 +251,15 @@ enum ExtraBalanceFeature {
      * <p>BLUE = (0, 100, 50), RED = (50, 0, 0) | 100 is the highest diff</p>
      * <p>BLUE = (0, 100, 0), RED = (50, 0, 50)</p>
      */
-    SWAP_TEAM_SPEC_TYPES {
+    class SwapTeamSpecTypes implements ExtraBalanceFeatureTwoTeams {
+
         @Override
-        public boolean apply(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos) {
-            Color colors = printer.colors();
-            Set<Team> teams = teamBalanceInfos.keySet();
-            if (teams.size() < 2) {
-                printer.sendMessage(colors.darkRed() + "Not 2 teams");
-                return false;
-            }
-            Team[] teamArray = teams.toArray(new Team[0]);
-            Team team1 = teamArray[0];
-            Team team2 = teamArray[1];
-            return trySwapSpecTypeGroup(printer, teamBalanceInfos, team1, team2);
+        public int getIterations() {
+            return 1;
         }
 
-        private boolean trySwapSpecTypeGroup(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos, Team team1, Team team2) {
+        @Override
+        public boolean applyTwoTeams(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos, Team team1, Team team2, int index) {
             Color colors = printer.colors();
             Balancer.TeamBalanceInfo teamBalanceInfo1 = teamBalanceInfos.get(team1);
             Balancer.TeamBalanceInfo teamBalanceInfo2 = teamBalanceInfos.get(team2);
@@ -261,40 +316,31 @@ enum ExtraBalanceFeature {
             }
             return applied;
         }
-    },
+    }
+
     /**
      * <p>Assuming spec types are as even as they can be.</p>
      * <p>- Only works if weight diff is greater than 1.</p>
      * <p>- First takes the highest spec type weight difference = x.</p>
      * <p>- Then finds a player on higher different spec type weighted team to swap with another player on the lower weighted team who is lower weight and would add up to x/2.</p>
      */
-    COMPENSATE {
+    class Compensate implements ExtraBalanceFeatureTwoTeams {
+
         @Override
         public boolean apply(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos) {
             if (Balancer.getMaxWeightDiff(teamBalanceInfos) <= 1) {
                 return false;
             }
-            Color colors = printer.colors();
-            Set<Team> teams = teamBalanceInfos.keySet();
-            if (teams.size() < 2) {
-                printer.sendMessage(colors.darkRed() + "Not 2 teams");
-                return false;
-            }
-            Team[] teamArray = teams.toArray(new Team[0]);
-            Team team1 = teamArray[0];
-            Team team2 = teamArray[1];
-            boolean applied = false;
-            for (int i = 0; i < 8; i++) {
-                if (tryToCompensate(printer, teamBalanceInfos, team1, team2, i)) {
-                    applied = true;
-                } else {
-                    break;
-                }
-            }
-            return applied;
+            return ExtraBalanceFeatureTwoTeams.super.apply(printer, teamBalanceInfos);
         }
 
-        private boolean tryToCompensate(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos, Team team1, Team team2, int index) {
+        @Override
+        public int getIterations() {
+            return 8;
+        }
+
+        @Override
+        public boolean applyTwoTeams(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos, Team team1, Team team2, int index) {
             Color colors = printer.colors();
             Balancer.TeamBalanceInfo teamBalanceInfo1 = teamBalanceInfos.get(team1);
             Balancer.TeamBalanceInfo teamBalanceInfo2 = teamBalanceInfos.get(team2);
@@ -378,37 +424,28 @@ enum ExtraBalanceFeature {
             lowestSpecTypeWeightTeam.addPlayer(highestPlayerToSwap);
             return true;
         }
-    },
+    }
+
     /**
      * <p>Finds best swap between to players with matching spec types that would even out the teams weights</p>
      */
-    HARD_SWAP {
+    class HardSwap implements ExtraBalanceFeatureTwoTeams {
+
         @Override
         public boolean apply(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos) {
             if (Balancer.getMaxWeightDiff(teamBalanceInfos) <= 1) {
                 return false;
             }
-            Color colors = printer.colors();
-            Set<Team> teams = teamBalanceInfos.keySet();
-            if (teams.size() < 2) {
-                printer.sendMessage(colors.darkRed() + "Not 2 teams");
-                return false;
-            }
-            Team[] teamArray = teams.toArray(new Team[0]);
-            Team team1 = teamArray[0];
-            Team team2 = teamArray[1];
-            boolean applied = false;
-            for (int i = 0; i < 5; i++) {
-                if (tryHardSwap(printer, teamBalanceInfos, team1, team2, i)) {
-                    applied = true;
-                } else {
-                    break;
-                }
-            }
-            return applied;
+            return ExtraBalanceFeatureTwoTeams.super.apply(printer, teamBalanceInfos);
         }
 
-        private boolean tryHardSwap(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos, Team team1, Team team2, int index) {
+        @Override
+        public int getIterations() {
+            return 5;
+        }
+
+        @Override
+        public boolean applyTwoTeams(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos, Team team1, Team team2, int index) {
             Color colors = printer.colors();
             Balancer.TeamBalanceInfo teamBalanceInfo1 = teamBalanceInfos.get(team1);
             Balancer.TeamBalanceInfo teamBalanceInfo2 = teamBalanceInfos.get(team2);
@@ -480,48 +517,12 @@ enum ExtraBalanceFeature {
             lowestPlayerToSwap.debuggedMessages().add(c -> colors.yellow() + "HARD SWAP #" + (index + 1) + " >> " + compensateInfo + "");
             return true;
         }
-    };
-
-    @Nullable
-    private static ExtraBalanceFeature.SpecTypeWeightWrapper getSpecTypeHighestWeightDiff(
-            Balancer.Printer printer,
-            Color colors,
-            Balancer.TeamBalanceInfo teamBalanceInfo1,
-            Balancer.TeamBalanceInfo teamBalanceInfo2
-    ) {
-        if (teamBalanceInfo1 == null || teamBalanceInfo2 == null) {
-            printer.sendMessage(colors.darkRed() + "One of the teams is null");
-            return null;
-        }
-        Map<SpecType, Double> specTypeWeightDiff = new HashMap<>();
-        for (SpecType value : SpecType.VALUES) {
-            double weight1 = teamBalanceInfo1.getSpecTypeWeight(value);
-            double weight2 = teamBalanceInfo2.getSpecTypeWeight(value);
-            specTypeWeightDiff.put(value, Math.abs(weight1 - weight2));
-        }
-        printer.sendMessage(colors.gray() + "-----------");
-        specTypeWeightDiff.forEach((specType, diff) -> printer.sendMessage(colors.yellow() + specType + " Weight Diff: " + colors.lightPurple() + format(diff)));
-        printer.sendMessage(colors.gray() + "-----------");
-        // get the spec type with the most difference in weight
-        SpecType specType = null;
-        double highestWeightDiff = 0;
-        for (Map.Entry<SpecType, Double> entry : specTypeWeightDiff.entrySet()) {
-            if (entry.getValue() > highestWeightDiff) {
-                highestWeightDiff = entry.getValue();
-                specType = entry.getKey();
-            }
-        }
-        return new SpecTypeWeightWrapper(specType, highestWeightDiff);
     }
 
     /**
-     * @param printer          the printer to send messages to
-     * @param teamBalanceInfos the team balance infos
-     * @return true if the feature was applied
+     * Wrapper class for a spec type and its weight difference between two teams
      */
-    public abstract boolean apply(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos);
-
-    static class SpecTypeWeightWrapper {
+    class SpecTypeWeightWrapper {
         protected final SpecType specType;
         private final double weightDiff;
 

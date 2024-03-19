@@ -34,7 +34,7 @@ public class Balancer {
                 60,
                 balanceMethod,
                 weightGenerationMethod,
-                features.isEmpty() ? EnumSet.noneOf(ExtraBalanceFeature.class) : EnumSet.copyOf(features)
+                features.isEmpty() ? new HashSet<>() : new HashSet<>(features)
         );
     }
 
@@ -44,7 +44,7 @@ public class Balancer {
             int playerCount,
             BalanceMethod balanceMethod,
             WeightGenerationMethod weightGenerationMethod,
-            EnumSet<ExtraBalanceFeature> extraBalanceFeatures
+            Set<ExtraBalanceFeature> extraBalanceFeatures
     ) {
         Color colors = printer.colors;
         printer.sendMessage(colors.white() + "-------------------------------------------------");
