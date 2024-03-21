@@ -100,7 +100,7 @@ public interface ExtraBalanceFeature {
             int maxPlayers = 0;
             Balancer.TeamBalanceInfo maxPlayersTeamInfo = null;
             for (Map.Entry<Team, Balancer.TeamBalanceInfo> entry : teamBalanceInfos.entrySet()) {
-                int size = entry.getValue().players.size();
+                int size = entry.getValue().getPlayers().size();
                 if (minPlayers == 0 || size < minPlayers) {
                     minPlayers = size;
                     minPlayersTeamInfo = entry.getValue();
@@ -138,7 +138,7 @@ public interface ExtraBalanceFeature {
             for (SpecType specType : SpecType.VALUES) {
                 List<Balancer.DebuggedPlayer> playersMatching = maxPlayersTeamInfo.getPlayersMatching(specType);
                 playersMatchingSpecType.put(specType, playersMatching);
-                if (minPlayersTeamInfo.specTypeCount.getOrDefault(specType, 0).equals(maxPlayersTeamInfo.specTypeCount.getOrDefault(specType, 0))) {
+                if (minPlayersTeamInfo.getSpecTypeCount(specType) == maxPlayersTeamInfo.getSpecTypeCount(specType)) {
                     specTypes.remove(specType);
                     if (!playersMatching.isEmpty()) {
                         backupSpecTypes.add(specType);
@@ -150,7 +150,7 @@ public interface ExtraBalanceFeature {
             }
             printer.sendMessage(colors.yellow() + "Swappable spec types: " + colors.darkAqua() + specTypes);
             // find any player on the team with the most players that has the spec type and would even out the weights the most
-            double weightDiff = maxPlayersTeamInfo.totalWeight - minPlayersTeamInfo.totalWeight;
+            double weightDiff = maxPlayersTeamInfo.getTotalWeight() - minPlayersTeamInfo.getTotalWeight();
             Balancer.DebuggedPlayer playerToMove = null;
             double lowestWeightDiff = Double.MAX_VALUE;
             for (SpecType specType : specTypes) {
@@ -365,8 +365,8 @@ public interface ExtraBalanceFeature {
             }
             // get team with the highest weight diff of spec type
             SpecType specType = infoSpecTypeWrapper.specType;
-            double team1Weight = teamBalanceInfo1.totalWeight;
-            double team2Weight = teamBalanceInfo2.totalWeight;
+            double team1Weight = teamBalanceInfo1.getTotalWeight();
+            double team2Weight = teamBalanceInfo2.getTotalWeight();
             Balancer.TeamBalanceInfo highestSpecTypeWeightTeam;
             Balancer.TeamBalanceInfo lowestSpecTypeWeightTeam;
             if (team1Weight > team2Weight) {
@@ -460,8 +460,8 @@ public interface ExtraBalanceFeature {
             Balancer.TeamBalanceInfo teamBalanceInfo1 = teamBalanceInfos.get(team1);
             Balancer.TeamBalanceInfo teamBalanceInfo2 = teamBalanceInfos.get(team2);
 
-            double team1Weight = teamBalanceInfo1.totalWeight;
-            double team2Weight = teamBalanceInfo2.totalWeight;
+            double team1Weight = teamBalanceInfo1.getTotalWeight();
+            double team2Weight = teamBalanceInfo2.getTotalWeight();
 
             double maxWeightDiff = Math.abs(team1Weight - team2Weight) / 2 + .5; // x/2, +1 adjustable to allow for closer swaps
             printer.sendMessage(colors.yellow() + "Max compensate weight diff: " + colors.lightPurple() + format(maxWeightDiff));
@@ -513,12 +513,19 @@ public interface ExtraBalanceFeature {
                     colors.gray() + ") = (" +
                     colors.lightPurple() + format(highestWeightDiff) +
                     colors.gray() + ")");
-            highestWeightTeam.removePlayer(highestPlayerToSwap);
+            try {
+                highestWeightTeam.removePlayer(highestPlayerToSwap);
+            } catch (Exception e) {
+                e.printStackTrace();
+                Balancer.printBalanceInfo(printer, teamBalanceInfos);
+                throw new RuntimeException("Failed to remove player " + highestPlayerToSwap.player()
+                                                                                           .getInfo(colors) + " from " + (highestWeightTeam == teamBalanceInfo1 ? team1 : team2));
+            }
             lowestWeightTeam.removePlayer(lowestPlayerToSwap);
             highestWeightTeam.addPlayer(lowestPlayerToSwap);
             lowestWeightTeam.addPlayer(highestPlayerToSwap);
-            double newTeam1Weight = teamBalanceInfo1.totalWeight;
-            double newTeam2Weight = teamBalanceInfo2.totalWeight;
+            double newTeam1Weight = teamBalanceInfo1.getTotalWeight();
+            double newTeam2Weight = teamBalanceInfo2.getTotalWeight();
             String compensateInfo = (highestWeightTeam == teamBalanceInfo1 ? team1 : team2) + " >> " +
                     format(team1Weight) + "|" + format(team2Weight) + " >> " +
                     format(newTeam1Weight) + "|" + format(newTeam2Weight) + " >> " +

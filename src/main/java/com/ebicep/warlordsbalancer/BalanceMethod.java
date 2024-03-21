@@ -32,16 +32,16 @@ public interface BalanceMethod {
                     Team team;
                     if (player.preassignedTeam() != null) {
                         team = player.preassignedTeam();
-                    } else if (teams.values().stream().anyMatch(teamBalanceInfo -> teamBalanceInfo.players.size() == maxPerTeam)) {
+                    } else if (teams.values().stream().anyMatch(teamBalanceInfo -> teamBalanceInfo.getPlayers().size() == maxPerTeam)) {
                         team = teams.entrySet()
                                     .stream()
-                                    .filter(entry -> entry.getValue().players.size() < maxPerTeam)
+                                    .filter(entry -> entry.getValue().getPlayers().size() < maxPerTeam)
                                     .map(Map.Entry::getKey)
                                     .findAny()
                                     .get();
                     } else { //put on team with lowest weight
                         team = teams.entrySet().stream()
-                                    .min(Comparator.comparingDouble(entry -> entry.getValue().totalWeight))
+                                    .min(Comparator.comparingDouble(entry -> entry.getValue().getTotalWeight()))
                                     .map(Map.Entry::getKey)
                                     .orElse(Team.RED);
                     }
@@ -69,7 +69,7 @@ public interface BalanceMethod {
                     } else {
                         team = teams.entrySet()
                                     .stream()
-                                    .min(Comparator.comparingInt(entry -> entry.getValue().players.size()))
+                                    .min(Comparator.comparingInt(entry -> entry.getValue().getPlayers().size()))
                                     .map(Map.Entry::getKey)
                                     .orElse(Team.RED);
                     }
@@ -100,13 +100,13 @@ public interface BalanceMethod {
                     } else if (firstOfCategory) {
                         team = teams.entrySet()
                                     .stream()
-                                    .min(Comparator.comparingDouble(entry -> entry.getValue().totalWeight))
+                                    .min(Comparator.comparingDouble(entry -> entry.getValue().getTotalWeight()))
                                     .map(Map.Entry::getKey)
                                     .orElse(Team.BLUE);
                     } else {
                         team = teams.entrySet()
                                     .stream()
-                                    .min(Comparator.comparingDouble(entry -> entry.getValue().players.size()))
+                                    .min(Comparator.comparingDouble(entry -> entry.getValue().getPlayers().size()))
                                     .map(Map.Entry::getKey)
                                     .orElse(Team.BLUE);
                     }
@@ -114,7 +114,7 @@ public interface BalanceMethod {
                     int index = amountOfPlayers - players.size();
                     Balancer.DebuggedPlayer debuggedPlayer = new Balancer.DebuggedPlayer(player, colors -> colors.aqua() + index);
                     if (player.preassignedTeam() == null && firstOfCategory) {
-                        Map<Team, Double> teamsWeights = teams.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().totalWeight));
+                        Map<Team, Double> teamsWeights = teams.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getTotalWeight()));
                         double newTeamWeight = teamsWeights.get(team) + player.weight();
                         debuggedPlayer.debuggedMessages().add(colors -> colors.darkPurple() +
                                 teamsWeights.entrySet()
