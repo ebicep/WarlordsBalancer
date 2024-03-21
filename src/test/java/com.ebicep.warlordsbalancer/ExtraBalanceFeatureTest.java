@@ -42,4 +42,40 @@ public class ExtraBalanceFeatureTest {
         Balancer.printBalanceInfo(printer, teamBalanceInfos);
     }
 
+    @Test
+    public void testSwapSpecTypes() {
+        Printer printer = new Printer(System.out::println, new Color() {});
+        Map<Team, TeamBalanceInfo> teamBalanceInfos = new HashMap<>();
+        teamBalanceInfos.put(Team.RED, new TeamBalanceInfo());
+        teamBalanceInfos.put(Team.BLUE, new TeamBalanceInfo());
+        teamBalanceInfos.get(Team.BLUE).addPlayer(new DebuggedPlayer(new Player(Specialization.CRYOMANCER, 6.53)));
+        teamBalanceInfos.get(Team.BLUE).addPlayer(new DebuggedPlayer(new Player(Specialization.PYROMANCER, 7.58)));
+        teamBalanceInfos.get(Team.BLUE).addPlayer(new DebuggedPlayer(new Player(Specialization.PYROMANCER, 6.53)));
+        teamBalanceInfos.get(Team.BLUE).addPlayer(new DebuggedPlayer(new Player(Specialization.PYROMANCER, 5.72)));
+        teamBalanceInfos.get(Team.BLUE).addPlayer(new DebuggedPlayer(new Player(Specialization.PYROMANCER, 1.93)));
+        teamBalanceInfos.get(Team.BLUE).addPlayer(new DebuggedPlayer(new Player(Specialization.AVENGER, 0.76)));
+        teamBalanceInfos.get(Team.BLUE).addPlayer(new DebuggedPlayer(new Player(Specialization.THUNDERLORD, 0.47)));
+        teamBalanceInfos.get(Team.BLUE).addPlayer(new DebuggedPlayer(new Player(Specialization.EARTHWARDEN, 6.53)));
+        teamBalanceInfos.get(Team.BLUE).addPlayer(new DebuggedPlayer(new Player(Specialization.AQUAMANCER, 5.85)));
+        teamBalanceInfos.get(Team.BLUE).addPlayer(new DebuggedPlayer(new Player(Specialization.REVENANT, 2.9)));
+        teamBalanceInfos.get(Team.BLUE).addPlayer(new DebuggedPlayer(new Player(Specialization.PROTECTOR, 1.08)));
+        teamBalanceInfos.get(Team.BLUE).addPlayer(new DebuggedPlayer(new Player(Specialization.REVENANT, 0.62)));
+        teamBalanceInfos.get(Team.RED).addPlayer(new DebuggedPlayer(new Player(Specialization.CRYOMANCER, 0.81)));
+        teamBalanceInfos.get(Team.RED).addPlayer(new DebuggedPlayer(new Player(Specialization.CRUSADER, 1.49)));
+        teamBalanceInfos.get(Team.RED).addPlayer(new DebuggedPlayer(new Player(Specialization.BERSERKER, 8)));
+        teamBalanceInfos.get(Team.RED).addPlayer(new DebuggedPlayer(new Player(Specialization.BERSERKER, 3.18)));
+        teamBalanceInfos.get(Team.RED).addPlayer(new DebuggedPlayer(new Player(Specialization.PYROMANCER, 1.57)));
+        teamBalanceInfos.get(Team.RED).addPlayer(new DebuggedPlayer(new Player(Specialization.AVENGER, 0.57)));
+        teamBalanceInfos.get(Team.RED).addPlayer(new DebuggedPlayer(new Player(Specialization.PYROMANCER, 0.43)));
+        teamBalanceInfos.get(Team.RED).addPlayer(new DebuggedPlayer(new Player(Specialization.REVENANT, 6.83)));
+        teamBalanceInfos.get(Team.RED).addPlayer(new DebuggedPlayer(new Player(Specialization.REVENANT, 2.96)));
+        teamBalanceInfos.get(Team.RED).addPlayer(new DebuggedPlayer(new Player(Specialization.AQUAMANCER, 1.14)));
+        teamBalanceInfos.get(Team.RED).addPlayer(new DebuggedPlayer(new Player(Specialization.AQUAMANCER, 0.86)));
+        teamBalanceInfos.get(Team.RED).addPlayer(new DebuggedPlayer(new Player(Specialization.REVENANT, 0.57)));
+
+        Balancer.printBalanceInfo(printer, teamBalanceInfos);
+        ExtraBalanceFeature.SWAP_SPEC_TYPES.apply(printer, teamBalanceInfos);
+        Balancer.printBalanceInfo(printer, teamBalanceInfos);
+    }
+
 }

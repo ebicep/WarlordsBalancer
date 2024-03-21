@@ -80,9 +80,9 @@ public interface ExtraBalanceFeature {
             return applied;
         }
 
-        boolean applyTwoTeams(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos, Team team1, Team team2, int index);
-
         int getIterations();
+
+        boolean applyTwoTeams(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos, Team team1, Team team2, int index);
     }
 
     /**
@@ -186,11 +186,6 @@ public interface ExtraBalanceFeature {
     class SwapSpecTypes implements ExtraBalanceFeatureTwoTeams {
 
         @Override
-        public int getIterations() {
-            return 5;
-        }
-
-        @Override
         public boolean applyTwoTeams(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos, Team team1, Team team2, int index) {
             Color colors = printer.colors();
             // find teams with equal amount of a spec type with the most difference in weight
@@ -241,6 +236,11 @@ public interface ExtraBalanceFeature {
             teamBalanceInfo2.addPlayer(team1Swap);
             return true;
         }
+
+        @Override
+        public int getIterations() {
+            return 5;
+        }
     }
 
     /**
@@ -252,11 +252,6 @@ public interface ExtraBalanceFeature {
      * <p>BLUE = (0, 100, 0), RED = (50, 0, 50)</p>
      */
     class SwapTeamSpecTypes implements ExtraBalanceFeatureTwoTeams {
-
-        @Override
-        public int getIterations() {
-            return 1;
-        }
 
         @Override
         public boolean applyTwoTeams(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos, Team team1, Team team2, int index) {
@@ -284,8 +279,8 @@ public interface ExtraBalanceFeature {
             // make team with lowest weight of other spec types on the team with highest weight of spec type
             boolean applied = false;
             for (SpecType otherSpecType : otherSpecTypes) {
-                List<Balancer.DebuggedPlayer> otherSpecTypePlayers1 = teamBalanceInfo1.getPlayersMatching(otherSpecType);
-                List<Balancer.DebuggedPlayer> otherSpecTypePlayers2 = teamBalanceInfo2.getPlayersMatching(otherSpecType);
+                List<Balancer.DebuggedPlayer> otherSpecTypePlayers1 = new ArrayList<>(teamBalanceInfo1.getPlayersMatching(otherSpecType));
+                List<Balancer.DebuggedPlayer> otherSpecTypePlayers2 = new ArrayList<>(teamBalanceInfo2.getPlayersMatching(otherSpecType));
                 if (specTypePlayers1.size() != specTypePlayers2.size() || otherSpecTypePlayers1.size() != otherSpecTypePlayers2.size()) {
                     printer.sendMessage(colors.darkRed() + "Teams don't have equal amount of " + otherSpecType);
                     return false;
@@ -316,6 +311,11 @@ public interface ExtraBalanceFeature {
             }
             return applied;
         }
+
+        @Override
+        public int getIterations() {
+            return 1;
+        }
     }
 
     /**
@@ -342,11 +342,6 @@ public interface ExtraBalanceFeature {
                 return false;
             }
             return ExtraBalanceFeatureTwoTeams.super.apply(printer, teamBalanceInfos);
-        }
-
-        @Override
-        public int getIterations() {
-            return 8;
         }
 
         @Override
@@ -434,6 +429,11 @@ public interface ExtraBalanceFeature {
             lowestSpecTypeWeightTeam.addPlayer(highestPlayerToSwap);
             return true;
         }
+
+        @Override
+        public int getIterations() {
+            return 8;
+        }
     }
 
     /**
@@ -447,11 +447,6 @@ public interface ExtraBalanceFeature {
                 return false;
             }
             return ExtraBalanceFeatureTwoTeams.super.apply(printer, teamBalanceInfos);
-        }
-
-        @Override
-        public int getIterations() {
-            return 5;
         }
 
         @Override
@@ -533,6 +528,11 @@ public interface ExtraBalanceFeature {
             highestPlayerToSwap.debuggedMessages().add(c -> colors.yellow() + "HARD SWAP #" + (index + 1) + " >> " + compensateInfo + "");
             lowestPlayerToSwap.debuggedMessages().add(c -> colors.yellow() + "HARD SWAP #" + (index + 1) + " >> " + compensateInfo + "");
             return true;
+        }
+
+        @Override
+        public int getIterations() {
+            return 5;
         }
     }
 
