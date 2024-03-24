@@ -29,7 +29,7 @@ public class Balancer {
     ) {
         List<ExtraBalanceFeature> features = List.of(extraBalanceFeatures);
         balance(new Printer(System.out::println, new Color() {}),
-                50_000,
+                1_000_000,
                 24,
                 balanceMethod,
                 weightGenerationMethod,

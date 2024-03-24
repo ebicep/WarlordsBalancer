@@ -2,6 +2,8 @@ package com.ebicep.warlordsbalancer;
 
 import org.junit.Test;
 
+import java.util.Collections;
+
 
 public class BalancerTest {
 
@@ -10,9 +12,21 @@ public class BalancerTest {
         Balancer.balance(BalanceMethod.V2_1,
                 WeightGenerationMethod.DEFAULT_CUSTOM_NORMAL_DISTRIBUTION,
                 ExtraBalanceFeature.SWAP_UNEVEN_TEAMS,
-                ExtraBalanceFeature.SWAP_SPEC_TYPES,
-                ExtraBalanceFeature.SWAP_TEAM_SPEC_TYPES,
+//                ExtraBalanceFeature.SWAP_SPEC_TYPES,
+//                ExtraBalanceFeature.SWAP_TEAM_SPEC_TYPES,
+                ExtraBalanceFeature.COMPENSATE,
                 ExtraBalanceFeature.HARD_SWAP
+        );
+    }
+
+    @Test
+    public void testBalancer2() {
+        Balancer.balance(new Balancer.Printer(System.out::println, new Color() {}),
+                1,
+                24,
+                BalanceMethod.V3_1,
+                WeightGenerationMethod.DEFAULT_CUSTOM_NORMAL_DISTRIBUTION,
+                Collections.emptyList()
         );
     }
 
