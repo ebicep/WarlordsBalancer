@@ -9,7 +9,7 @@ public class AllBalancersTest {
     @Test
     public void testAll() {
         Class<?>[] classes = {
-                BalancerTest.class
+                SwapSpecTypesTest.class
         };
         JUnitCore.runClasses(new ParallelComputer(true, true), classes);
     }

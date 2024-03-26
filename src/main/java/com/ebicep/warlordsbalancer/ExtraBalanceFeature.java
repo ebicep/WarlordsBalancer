@@ -1,7 +1,5 @@
 package com.ebicep.warlordsbalancer;
 
-import org.jetbrains.annotations.Nullable;
-
 import java.util.*;
 
 import static com.ebicep.warlordsbalancer.Balancer.format;
@@ -14,12 +12,12 @@ public interface ExtraBalanceFeature {
     ExtraBalanceFeature COMPENSATE = new Compensate();
     ExtraBalanceFeature HARD_SWAP = new HardSwap();
 
-    @Nullable
-    private static ExtraBalanceFeature.SpecTypeWeightWrapper getSpecTypeHighestWeightDiff(
+    private static SpecTypeWeightWrapper getSpecTypeHighestWeightDiff(
             Balancer.Printer printer,
             Color colors,
             Balancer.TeamBalanceInfo teamBalanceInfo1,
-            Balancer.TeamBalanceInfo teamBalanceInfo2
+            Balancer.TeamBalanceInfo teamBalanceInfo2,
+            Set<SpecType> exclude
     ) {
         if (teamBalanceInfo1 == null || teamBalanceInfo2 == null) {
             printer.sendMessage(colors.darkRed() + "One of the teams is null");
@@ -27,6 +25,9 @@ public interface ExtraBalanceFeature {
         }
         Map<SpecType, Double> specTypeWeightDiff = new HashMap<>();
         for (SpecType value : SpecType.VALUES) {
+            if (exclude.contains(value)) {
+                continue;
+            }
             double weight1 = teamBalanceInfo1.getSpecTypeWeight(value);
             double weight2 = teamBalanceInfo2.getSpecTypeWeight(value);
             specTypeWeightDiff.put(value, Math.abs(weight1 - weight2));
@@ -168,7 +169,7 @@ public interface ExtraBalanceFeature {
                 return false;
             }
             printer.sendMessage(colors.yellow() + "Moving " + playerToMove.player().getInfo(colors));
-            playerToMove.debuggedMessages().add(c -> colors.yellow() + "MOVED");
+            playerToMove.addDebugMessage(c -> colors.yellow() + "MOVED");
             maxPlayersTeamInfo.removePlayer(playerToMove);
             minPlayersTeamInfo.addPlayer(playerToMove);
             return true;
@@ -185,29 +186,43 @@ public interface ExtraBalanceFeature {
      */
     class SwapSpecTypes implements ExtraBalanceFeatureTwoTeams {
 
+        private final Set<SpecType> typesChecked = new HashSet<>(3);
+
+        @Override
+        public boolean apply(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos) {
+            typesChecked.clear();
+            return ExtraBalanceFeatureTwoTeams.super.apply(printer, teamBalanceInfos);
+        }
+
         @Override
         public boolean applyTwoTeams(Balancer.Printer printer, Map<Team, Balancer.TeamBalanceInfo> teamBalanceInfos, Team team1, Team team2, int index) {
             Color colors = printer.colors();
             // find teams with equal amount of a spec type with the most difference in weight
             Balancer.TeamBalanceInfo teamBalanceInfo1 = teamBalanceInfos.get(team1);
             Balancer.TeamBalanceInfo teamBalanceInfo2 = teamBalanceInfos.get(team2);
-            SpecTypeWeightWrapper infoSpecTypeWrapper = getSpecTypeHighestWeightDiff(printer, colors, teamBalanceInfo1, teamBalanceInfo2);
+            SpecTypeWeightWrapper infoSpecTypeWrapper = getSpecTypeHighestWeightDiff(printer, colors, teamBalanceInfo1, teamBalanceInfo2, typesChecked);
             if (infoSpecTypeWrapper == null) {
                 return false;
             }
             SpecType specType = infoSpecTypeWrapper.specType;
+            if (specType == null) {
+                printer.sendMessage(colors.darkRed() + "No more spec types to swap");
+                return false;
+            }
             List<Balancer.DebuggedPlayer> team1Matching = teamBalanceInfo1.getPlayersMatching(specType);
             List<Balancer.DebuggedPlayer> team2Matching = teamBalanceInfo2.getPlayersMatching(specType);
             // find the players that would even out the spec type weights the most
             Balancer.DebuggedPlayer team1Swap = null;
             Balancer.DebuggedPlayer team2Swap = null;
             double lowestWeightDiff = infoSpecTypeWrapper.weightDiff;
+            printer.sendMessage(colors.yellow() + "Spec type with highest weight diff: " + colors.lightPurple() + specType + " | " + format(lowestWeightDiff));
             for (Balancer.DebuggedPlayer player1 : team1Matching) {
                 for (Balancer.DebuggedPlayer player2 : team2Matching) {
                     double newLowestWeightDiff = Math.abs(
                             (teamBalanceInfo1.getSpecTypeWeight(specType) - player1.player().weight() + player2.player().weight()) -
                                     (teamBalanceInfo2.getSpecTypeWeight(specType) - player2.player().weight() + player1.player().weight())
                     );
+                    printer.sendMessage(colors.gray() + format(player1.player().weight()) + " | " + format(player2.player().weight()) + " | " + format(newLowestWeightDiff));
                     if (newLowestWeightDiff < lowestWeightDiff) {
                         lowestWeightDiff = newLowestWeightDiff;
                         team1Swap = player1;
@@ -215,25 +230,26 @@ public interface ExtraBalanceFeature {
                     }
                 }
             }
-            if (team1Swap == null) {
+            if (team1Swap != null) {
                 printer.sendMessage(colors.darkRed() + "No players to swap");
-                return false;
+                printer.sendMessage(colors.yellow() + "Swapping " +
+                        colors.blue() + "BLUE" +
+                        colors.gray() + "(" + team1Swap.player().getInfo(colors) +
+                        colors.gray() + ") " +
+                        colors.red() + "RED" +
+                        colors.gray() + "(" + team2Swap.player().getInfo(colors) +
+                        colors.gray() + ") = (" +
+                        colors.lightPurple() + format(Math.abs(team1Swap.player().weight() - team2Swap.player().weight())) +
+                        colors.gray() + ")");
+                team1Swap.addDebugMessage(c -> colors.yellow() + "SWAPPED #" + (index + 1));
+                team2Swap.addDebugMessage(c -> colors.yellow() + "SWAPPED #" + (index + 1));
+                teamBalanceInfo1.removePlayer(team1Swap);
+                teamBalanceInfo2.removePlayer(team2Swap);
+                teamBalanceInfo1.addPlayer(team2Swap);
+                teamBalanceInfo2.addPlayer(team1Swap);
+            } else {
+                typesChecked.add(specType);
             }
-            printer.sendMessage(colors.yellow() + "Swapping " +
-                    colors.blue() + "BLUE" +
-                    colors.gray() + "(" + team1Swap.player().getInfo(colors) +
-                    colors.gray() + ") " +
-                    colors.red() + "RED" +
-                    colors.gray() + "(" + team2Swap.player().getInfo(colors) +
-                    colors.gray() + ") = (" +
-                    colors.lightPurple() + format(Math.abs(team1Swap.player().weight() - team2Swap.player().weight())) +
-                    colors.gray() + ")");
-            team1Swap.debuggedMessages().add(c -> colors.yellow() + "SWAPPED #" + (index + 1));
-            team2Swap.debuggedMessages().add(c -> colors.yellow() + "SWAPPED #" + (index + 1));
-            teamBalanceInfo1.removePlayer(team1Swap);
-            teamBalanceInfo2.removePlayer(team2Swap);
-            teamBalanceInfo1.addPlayer(team2Swap);
-            teamBalanceInfo2.addPlayer(team1Swap);
             return true;
         }
 
@@ -258,7 +274,9 @@ public interface ExtraBalanceFeature {
             Color colors = printer.colors();
             Balancer.TeamBalanceInfo teamBalanceInfo1 = teamBalanceInfos.get(team1);
             Balancer.TeamBalanceInfo teamBalanceInfo2 = teamBalanceInfos.get(team2);
-            SpecTypeWeightWrapper infoSpecTypeWrapper = ExtraBalanceFeature.getSpecTypeHighestWeightDiff(printer, printer.colors(), teamBalanceInfo1, teamBalanceInfo2);
+            SpecTypeWeightWrapper infoSpecTypeWrapper = ExtraBalanceFeature.getSpecTypeHighestWeightDiff(printer, printer.colors(), teamBalanceInfo1, teamBalanceInfo2,
+                    new HashSet<>()
+            );
             if (infoSpecTypeWrapper == null) {
                 return false;
             }
@@ -349,7 +367,7 @@ public interface ExtraBalanceFeature {
             Color colors = printer.colors();
             Balancer.TeamBalanceInfo teamBalanceInfo1 = teamBalanceInfos.get(team1);
             Balancer.TeamBalanceInfo teamBalanceInfo2 = teamBalanceInfos.get(team2);
-            SpecTypeWeightWrapper infoSpecTypeWrapper = ExtraBalanceFeature.getSpecTypeHighestWeightDiff(printer, colors, teamBalanceInfo1, teamBalanceInfo2);
+            SpecTypeWeightWrapper infoSpecTypeWrapper = ExtraBalanceFeature.getSpecTypeHighestWeightDiff(printer, colors, teamBalanceInfo1, teamBalanceInfo2, new HashSet<>());
             if (infoSpecTypeWrapper == null) {
                 return false;
             }
@@ -421,8 +439,8 @@ public interface ExtraBalanceFeature {
                     colors.lightPurple() + format(highestWeightDiff) +
                     colors.gray() + ")");
             String compensateInfo = format(maxWeightDiff) + "|" + format(highestWeightDiff);
-            highestPlayerToSwap.debuggedMessages().add(c -> colors.yellow() + "COMPENSATE SWAP #" + (index + 1) + " " + compensateInfo + "");
-            lowestPlayerToSwap.debuggedMessages().add(c -> colors.yellow() + "COMPENSATE SWAP #" + (index + 1) + " " + compensateInfo + "");
+            highestPlayerToSwap.addDebugMessage(c -> colors.yellow() + "COMPENSATE SWAP #" + (index + 1) + " " + compensateInfo + "");
+            lowestPlayerToSwap.addDebugMessage(c -> colors.yellow() + "COMPENSATE SWAP #" + (index + 1) + " " + compensateInfo + "");
             highestSpecTypeWeightTeam.removePlayer(highestPlayerToSwap);
             lowestSpecTypeWeightTeam.removePlayer(lowestPlayerToSwap);
             highestSpecTypeWeightTeam.addPlayer(lowestPlayerToSwap);
@@ -525,8 +543,8 @@ public interface ExtraBalanceFeature {
                     format(team1Weight) + "|" + format(team2Weight) + " >> " +
                     format(newTeam1Weight) + "|" + format(newTeam2Weight) + " >> " +
                     format(maxWeightDiff) + "|" + format(highestWeightDiff);
-            highestPlayerToSwap.debuggedMessages().add(c -> colors.yellow() + "HARD SWAP #" + (index + 1) + " >> " + compensateInfo + "");
-            lowestPlayerToSwap.debuggedMessages().add(c -> colors.yellow() + "HARD SWAP #" + (index + 1) + " >> " + compensateInfo + "");
+            highestPlayerToSwap.addDebugMessage(c -> colors.yellow() + "HARD SWAP #" + (index + 1) + " >> " + compensateInfo + "");
+            lowestPlayerToSwap.addDebugMessage(c -> colors.yellow() + "HARD SWAP #" + (index + 1) + " >> " + compensateInfo + "");
             return true;
         }
 

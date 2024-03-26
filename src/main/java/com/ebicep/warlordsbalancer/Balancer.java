@@ -29,7 +29,7 @@ public class Balancer {
     ) {
         List<ExtraBalanceFeature> features = List.of(extraBalanceFeatures);
         balance(new Printer(System.out::println, new Color() {}),
-                1_000_000,
+                500_000,
                 24,
                 balanceMethod,
                 weightGenerationMethod,
@@ -45,17 +45,9 @@ public class Balancer {
             WeightGenerationMethod weightGenerationMethod,
             List<ExtraBalanceFeature> extraBalanceFeatures
     ) {
+        long start = System.nanoTime();
+        printer.sendMessage("Starting Balance: " + start);
         Color colors = printer.colors;
-        printer.sendMessage(colors.white() + "-------------------------------------------------");
-        printer.sendMessage(colors.white() + "-------------------------------------------------");
-        printer.sendMessage(colors.gray() + "Iterations: " + colors.green() + iterations);
-        printer.sendMessage(colors.gray() + "Player Count: " + colors.green() + playerCount);
-        printer.sendMessage(colors.gray() + "Balance Method: " + colors.green() + balanceMethod.getClass().getSimpleName());
-        printer.sendMessage(colors.gray() + "Random Weight Method: " + colors.green() + weightGenerationMethod.getClass().getSimpleName());
-        printer.sendMessage(colors.gray() + "Extra Balance Features: " + colors.green() + extraBalanceFeatures.stream()
-                                                                                                              .map(extraBalanceFeature -> extraBalanceFeature.getClass()
-                                                                                                                                                             .getSimpleName())
-                                                                                                              .collect(Collectors.joining(", ")));
         double totalWeightDiff = 0;
         double maxWeightDiff = 0;
         Map<Integer, Integer> weightDiffCount = new HashMap<>();
@@ -119,6 +111,16 @@ public class Balancer {
             }
         }
         printer.setEnabled(true);
+        printer.sendMessage(colors.white() + "-------------------------------------------------");
+        printer.sendMessage(colors.white() + "-------------------------------------------------");
+        printer.sendMessage(colors.gray() + "Iterations: " + colors.green() + iterations);
+        printer.sendMessage(colors.gray() + "Player Count: " + colors.green() + playerCount);
+        printer.sendMessage(colors.gray() + "Balance Method: " + colors.green() + balanceMethod.getClass().getSimpleName());
+        printer.sendMessage(colors.gray() + "Random Weight Method: " + colors.green() + weightGenerationMethod.getClass().getSimpleName());
+        printer.sendMessage(colors.gray() + "Extra Balance Features: " + colors.green() + extraBalanceFeatures.stream()
+                                                                                                              .map(extraBalanceFeature -> extraBalanceFeature.getClass()
+                                                                                                                                                             .getSimpleName())
+                                                                                                              .collect(Collectors.joining(", ")));
         printer.sendMessage(colors.gray() + "Average Weight Diff: " + colors.darkPurple() + WEIGHT_FORMAT.format(totalWeightDiff / iterations));
         printer.sendMessage(colors.gray() + "Max Weight Diff: " + colors.darkPurple() + WEIGHT_FORMAT.format(maxWeightDiff));
         printBalanceInfo(printer, mostUnbalancedTeam);
@@ -126,15 +128,19 @@ public class Balancer {
         printer.sendMessage(colors.white() + "-------------------------------------------------");
         printer.sendMessage(colors.white() + "-------------------------------------------------");
 
-        mostUnbalancedTeam.forEach((key, value) -> {
-            for (DebuggedPlayer player : value.players) {
-                printer.sendMessage("new Player(Specialization." + player.player.spec + ", " + WEIGHT_FORMAT.format(player.player.weight) + ")");
-            }
-        });
+//        mostUnbalancedTeam.forEach((key, value) -> {
+//            for (DebuggedPlayer player : value.players) {
+//                printer.sendMessage("new Player(Specialization." + player.player.spec + ", " + WEIGHT_FORMAT.format(player.player.weight) + ")");
+//            }
+//        });
 
         weightDiffCount.forEach((weightDiff, count) -> {
             printer.sendMessage(weightDiff + " - " + count + " (" + WEIGHT_FORMAT.format(count / (double) iterations * 100) + "%)");
         });
+
+        long end = System.nanoTime();
+        printer.sendMessage("Ending Balance: " + end);
+        printer.sendMessage("Time Taken: " + (end - start) / 1_000_000_000 + "s");
     }
 
     private static Map<Team, TeamBalanceInfo> getBalancedTeams(Set<Player> players, BalanceMethod balanceMethod) {
@@ -333,6 +339,10 @@ public class Balancer {
                 info.append(colors.gray()).append(")");
             }
             return info.toString();
+        }
+
+        public void addDebugMessage(DebuggedMessage debuggedMessage) {
+            debuggedMessages.add(debuggedMessage);
         }
     }
 

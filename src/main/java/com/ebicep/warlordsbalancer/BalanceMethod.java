@@ -115,7 +115,7 @@ public interface BalanceMethod {
                     if (player.preassignedTeam() == null && firstOfCategory) {
                         Map<Team, Double> teamsWeights = teams.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getTotalWeight()));
                         double newTeamWeight = teamsWeights.get(team) + player.weight();
-                        debuggedPlayer.debuggedMessages().add(colors -> colors.darkPurple() +
+                        debuggedPlayer.addDebugMessage(colors -> colors.darkPurple() +
                                 teamsWeights.entrySet()
                                             .stream()
                                             .map(entry -> {
